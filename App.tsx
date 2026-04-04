@@ -2,7 +2,17 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import type { ComponentProps } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 
 type TabKey = "dashboard" | "map" | "reward" | "history";
@@ -154,9 +164,104 @@ const sustainabilityStats = [
 ] as const;
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const progressPercentage = (rewardProgress.current / rewardProgress.goal) * 100;
   const progressWidth = `${progressPercentage}%` as const;
+
+  const handleLogin = () => {
+    const email = loginEmail.trim();
+    if (!email || !loginPassword) {
+      setLoginError("Enter email and password.");
+      return;
+    }
+    if (!email.includes("@")) {
+      setLoginError("Enter a valid email address.");
+      return;
+    }
+    if (loginPassword.length < 4) {
+      setLoginError("Password must be at least 4 characters.");
+      return;
+    }
+    setLoginError(null);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoginPassword("");
+    setActiveTab("dashboard");
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView
+          style={styles.loginKeyboardView}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}>
+          <ScrollView
+            contentContainerStyle={styles.loginScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.loginBrandBlock}>
+              <View style={styles.loginLogoCircle}>
+                <MaterialCommunityIcons name="leaf-circle" size={42} color="#0f5c45" />
+              </View>
+              <Text style={styles.loginAppTitle}>Ecoride</Text>
+              <Text style={styles.loginTagline}>Ride greener. Earn more rewards.</Text>
+            </View>
+
+            <View style={styles.loginCard}>
+              <Text style={styles.loginCardTitle}>Sign in</Text>
+              <Text style={styles.loginCardHint}>Use any email and a password of 4+ characters for this demo.</Text>
+
+              <Text style={styles.loginLabel}>Email</Text>
+              <TextInput
+                style={styles.loginInput}
+                placeholder="you@example.com"
+                placeholderTextColor="#94a3b8"
+                value={loginEmail}
+                onChangeText={(t) => {
+                  setLoginEmail(t);
+                  setLoginError(null);
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
+
+              <Text style={styles.loginLabel}>Password</Text>
+              <TextInput
+                style={styles.loginInput}
+                placeholder="••••••••"
+                placeholderTextColor="#94a3b8"
+                value={loginPassword}
+                onChangeText={(t) => {
+                  setLoginPassword(t);
+                  setLoginError(null);
+                }}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="password"
+              />
+
+              {loginError ? <Text style={styles.loginErrorText}>{loginError}</Text> : null}
+
+              <Pressable style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Sign in</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -164,8 +269,15 @@ export default function App() {
 
       {activeTab !== "map" && (
         <View style={styles.appHeader}>
-          <Text style={styles.appTitle}>Ecoride</Text>
-          <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+          <View style={styles.appHeaderRow}>
+            <View style={styles.appHeaderTitles}>
+              <Text style={styles.appTitle}>Ecoride</Text>
+              <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+            </View>
+            <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
+              <Text style={styles.logoutButtonText}>Log out</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -418,6 +530,9 @@ export default function App() {
           </ScrollView>
         ) : (
           <View style={styles.mapWrapper}>
+            <Pressable onPress={handleLogout} style={styles.mapLogoutFab} hitSlop={12}>
+              <Text style={styles.mapLogoutText}>Log out</Text>
+            </Pressable>
             <MapView
               initialRegion={mapRegion}
               style={StyleSheet.absoluteFillObject}
@@ -489,6 +604,139 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  appHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  appHeaderTitles: {
+    flex: 1,
+  },
+  logoutButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  logoutButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0f5c45",
+  },
+  mapLogoutFab: {
+    position: "absolute",
+    top: 78,
+    right: 20,
+    zIndex: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  mapLogoutText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f5c45",
+  },
+  loginKeyboardView: {
+    flex: 1,
+  },
+  loginScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  loginBrandBlock: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  loginLogoCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  loginAppTitle: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#0b3d2e",
+  },
+  loginTagline: {
+    marginTop: 8,
+    fontSize: 16,
+    color: "#4d6b61",
+    textAlign: "center",
+  },
+  loginCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  loginCardTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 8,
+  },
+  loginCardHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#64748b",
+    marginBottom: 20,
+  },
+  loginLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#475569",
+    marginBottom: 8,
+  },
+  loginInput: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === "ios" ? 14 : 12,
+    fontSize: 16,
+    color: "#0f172a",
+    marginBottom: 16,
+    backgroundColor: "#f8fafc",
+  },
+  loginErrorText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#b91c1c",
+    marginBottom: 12,
+  },
+  loginButton: {
+    backgroundColor: "#0f5c45",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   appTitle: {
     fontSize: 32,
