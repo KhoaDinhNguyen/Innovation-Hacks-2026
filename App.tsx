@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import type { ComponentProps } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import MapView, { Marker, Polyline } from "react-native-maps";
 
 type TabKey = "dashboard" | "map" | "reward" | "history";
 
@@ -52,6 +54,103 @@ const pointHistory = [
   { id: "3", title: "Completed weekly eco goal", points: "+80", date: "Apr 2" },
   { id: "4", title: "Redeemed coffee voucher", points: "-150", date: "Apr 1" },
 ];
+const tripHistory = [
+  {
+    id: "1",
+    date: "Today",
+    time: "2:30 PM",
+    from: "Home",
+    to: "Central Park",
+    points: "+40",
+    co2: "2.5 kg CO2",
+    distance: "3.2 km",
+    duration: "15 min",
+    vehicleIcon: "walk",
+  },
+  {
+    id: "2",
+    date: "Yesterday",
+    time: "8:10 AM",
+    from: "Dorm A",
+    to: "ASU Campus",
+    points: "+25",
+    co2: "1.8 kg CO2",
+    distance: "4.1 km",
+    duration: "18 min",
+    vehicleIcon: "bike-fast",
+  },
+] as const;
+
+const sustainabilityStats = [
+  {
+    id: "points",
+    label: "Sustainable Points",
+    value: "175",
+    change: "+12%",
+    period: "this week",
+    icon: "leaf",
+    iconColor: "#16a34a",
+    iconBackground: "#dcfce7",
+  },
+  {
+    id: "co2",
+    label: "kg of CO2 Saved",
+    value: "11.1",
+    change: "+8%",
+    period: "this week",
+    icon: "cloud-check-outline",
+    iconColor: "#2563eb",
+    iconBackground: "#dbeafe",
+  },
+  {
+    id: "trips",
+    label: "Trips Completed",
+    value: "5",
+    change: "+25%",
+    period: "vs last month",
+    icon: "map-marker-path",
+    iconColor: "#9333ea",
+    iconBackground: "#f3e8ff",
+  },
+  {
+    id: "achievements",
+    label: "Achievements",
+    value: "8",
+    change: "+2",
+    period: "new this month",
+    icon: "trophy-outline",
+    iconColor: "#d97706",
+    iconBackground: "#fef3c7",
+  },
+] as const;
+
+const mapRegion = {
+  latitude: 33.4484,
+  longitude: -112.074,
+  latitudeDelta: 0.028,
+  longitudeDelta: 0.028,
+} as const;
+
+const mapMarkers = [
+  {
+    id: "carpool-hub",
+    title: "South Campus Carpool",
+    description: "Shared rides depart from Campus Circle every 15 minutes.",
+    coordinate: { latitude: 33.4476, longitude: -112.0739 },
+  },
+  {
+    id: "bike-hub",
+    title: "Rio Bike Hub",
+    description: "Electric bike rentals and secure storage.",
+    coordinate: { latitude: 33.4489, longitude: -112.0762 },
+  },
+  {
+    id: "ev-charge",
+    title: "EV Charging Plaza",
+    description: "Solar canopy with Level 2 chargers.",
+    coordinate: { latitude: 33.4493, longitude: -112.0724 },
+  },
+] as const;
 
 const tripHistory = [
   {
@@ -132,10 +231,12 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
 
-      <View style={styles.appHeader}>
-        <Text style={styles.appTitle}>Ecoride</Text>
-        <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
-      </View>
+      {activeTab !== "map" && (
+        <View style={styles.appHeader}>
+          <Text style={styles.appTitle}>Ecoride</Text>
+          <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+        </View>
+      )}
 
       <View style={styles.content}>
         {activeTab === "dashboard" ? (
@@ -385,10 +486,37 @@ export default function App() {
             </View>
           </ScrollView>
         ) : (
-          <View style={styles.mapScreen}>
-            <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapTitle}>Map GUI</Text>
-              <Text style={styles.mapSubtitle}>Empty screen reserved for the upcoming map experience.</Text>
+          <View style={styles.mapWrapper}>
+            <MapView
+              initialRegion={mapRegion}
+              style={StyleSheet.absoluteFillObject}
+              showsCompass
+              loadingEnabled
+              onRegionChangeComplete={(region) => console.log("Region changed:", region)}
+            >
+              {mapMarkers.map((marker) => (
+                <Marker
+                  key={marker.id}
+                  coordinate={marker.coordinate}
+                  title={marker.title}
+                  description={marker.description}
+                  onPress={() => console.log(`Marker pressed: ${marker.title}`)}
+                />
+              ))}
+              <Polyline
+                coordinates={[
+                  { latitude: 33.4484, longitude: -112.074 },
+                  { latitude: 33.4524, longitude: -112.0758 },
+                ]}
+                strokeColor="#000"
+                strokeWidth={3}
+              />
+            </MapView>
+
+            <View style={styles.mapSearchBar}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
+              <Text style={styles.mapSearchInput}>Search destinations, streets, transit stops</Text>
+              <MaterialCommunityIcons name="microphone" size={20} color="#475569" />
             </View>
           </View>
         )}
@@ -409,7 +537,7 @@ export default function App() {
 }
 
 type TabButtonProps = {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  icon: ComponentProps<typeof MaterialCommunityIcons>["name"];
   isActive: boolean;
   onPress: () => void;
 };
@@ -975,10 +1103,8 @@ const styles = StyleSheet.create({
   negativePoints: {
     color: "#b75555",
   },
-  mapScreen: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  mapSectionHeader: {
+    paddingTop: 4,
   },
   mapScrollContent: {
     paddingHorizontal: 20,
@@ -1069,13 +1195,95 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "800",
     color: "#0b3d2e",
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  mapSubtitle: {
+  mapSectionSubtitle: {
     fontSize: 15,
     lineHeight: 22,
     color: "#5c786d",
-    textAlign: "center",
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  statCard: {
+    width: "47%",
+    minHeight: 190,
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  statIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 22,
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 8,
+  },
+  statLabel: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: "#334e68",
+    marginBottom: 16,
+  },
+  statTrendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: "auto",
+  },
+  statTrendValue: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  statTrendPeriod: {
+    fontSize: 15,
+    color: "#64748b",
+  },
+  mapWrapper: {
+    flex: 1,
+    backgroundColor: "#f4f7f2",
+    position: "relative",
+  },
+  mapSearchBar: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  mapSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#475569",
+    marginLeft: 12,
   },
   tabBar: {
     flexDirection: "row",
