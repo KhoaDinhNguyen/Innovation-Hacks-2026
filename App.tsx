@@ -19,72 +19,72 @@ const vouchers = [
     title: "Free Coffee Voucher",
     description: "Redeem this voucher for one free handcrafted coffee or tea.",
     points: 150,
-    partner: "Green Bean Cafe",
+    partner: "Apple",
     status: "redeemed",
     accentColor: "#f59e0b",
-    logoIcon: "coffee-outline",
-    logoBackground: "#fff7ed",
-    logoColor: "#c2410c",
+    logoIcon: "apple",
+    logoBackground: "#f3f4f6",
+    logoColor: "#111827",
   },
   {
     id: "2",
     title: "Campus Smoothie Voucher",
     description: "Redeem this voucher for one free fruit smoothie.",
     points: 180,
-    partner: "Sun Blend Bar",
+    partner: "Google",
     status: "redeemed",
     accentColor: "#ec4899",
-    logoIcon: "cup-outline",
-    logoBackground: "#fdf2f8",
-    logoColor: "#be185d",
+    logoIcon: "google",
+    logoBackground: "#eff6ff",
+    logoColor: "#2563eb",
   },
   {
     id: "3",
     title: "Bus Pass Discount",
     description: "Use this voucher to lower the cost of your next bus or metro pass.",
     points: 280,
-    partner: "City Transit",
+    partner: "Microsoft",
     status: "unlock",
     accentColor: "#3b82f6",
-    logoIcon: "bus-side",
+    logoIcon: "microsoft-windows",
     logoBackground: "#eff6ff",
-    logoColor: "#1d4ed8",
+    logoColor: "#2563eb",
   },
   {
     id: "4",
     title: "Lunch Combo Discount",
     description: "Use this voucher to save on a sustainable lunch combo.",
     points: 320,
-    partner: "Fresh Fork Cafe",
+    partner: "Meta",
     status: "unlock",
     accentColor: "#8b5cf6",
-    logoIcon: "food-outline",
-    logoBackground: "#f5f3ff",
-    logoColor: "#6d28d9",
+    logoIcon: "facebook",
+    logoBackground: "#eef2ff",
+    logoColor: "#4338ca",
   },
   {
     id: "5",
     title: "Eco Store Gift Card",
     description: "Exchange this for store credit on reusable and eco-friendly products.",
     points: 450,
-    partner: "Eco Market",
+    partner: "Amazon",
     status: "lock",
     accentColor: "#14b8a6",
-    logoIcon: "leaf-circle-outline",
-    logoBackground: "#f0fdfa",
-    logoColor: "#0f766e",
+    logoIcon: "aws",
+    logoBackground: "#fff7ed",
+    logoColor: "#c2410c",
   },
   {
     id: "6",
     title: "Weekend Rail Pass",
     description: "Unlock a discounted rail pass for your weekend trips.",
     points: 520,
-    partner: "Metro Valley",
+    partner: "NVIDIA",
     status: "lock",
     accentColor: "#ef4444",
-    logoIcon: "train",
-    logoBackground: "#fef2f2",
-    logoColor: "#b91c1c",
+    logoIcon: "expansion-card",
+    logoBackground: "#ecfccb",
+    logoColor: "#3f6212",
   },
 ] as const;
 
@@ -407,6 +407,9 @@ export default function App() {
                     You have <Text style={styles.rewardPointsValue}>{rewardProgress.current}</Text> points
                   </Text>
                 </View>
+              </View>
+
+              <View style={styles.rewardList}>
                 {vouchers.map((voucher) => (
                   <View
                     key={voucher.id}
@@ -417,11 +420,11 @@ export default function App() {
                     ]}>
                     <View style={[styles.voucherTopGlow, { backgroundColor: voucher.accentColor }]} />
 
-                  <View style={styles.voucherHeader}>
-                    <View style={styles.voucherBrandRow}>
-                      <View style={[styles.voucherLogoWrap, { backgroundColor: voucher.logoBackground }]}>
-                        <MaterialCommunityIcons name={voucher.logoIcon} size={18} color={voucher.logoColor} />
-                      </View>
+                    <View style={styles.voucherHeader}>
+                      <View style={styles.voucherBrandRow}>
+                        <View style={[styles.voucherLogoWrap, { backgroundColor: voucher.logoBackground }]}>
+                          <MaterialCommunityIcons name={voucher.logoIcon} size={24} color={voucher.logoColor} />
+                        </View>
 
                         <View style={styles.voucherTitleBlock}>
                           <Text style={styles.voucherTitle}>{voucher.title}</Text>
@@ -1078,9 +1081,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#ffffff",
     borderRadius: 28,
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 18,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
     marginTop: 12,
     borderWidth: 1,
     borderColor: "#e7edf2",
@@ -1118,9 +1121,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   voucherLogoWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1169,7 +1172,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#334155",
     marginBottom: 14,
-    paddingLeft: 68,
+    marginLeft: 50,
   },
   voucherFooter: {
     flexDirection: "row",
@@ -1237,6 +1240,9 @@ const styles = StyleSheet.create({
   rewardPointsValue: {
     fontWeight: "800",
     color: "#16a34a",
+  },
+  rewardList: {
+    gap: 0,
   },
   historyPoints: {
     fontSize: 15,
