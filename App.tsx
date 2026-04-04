@@ -2,10 +2,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import type { ComponentProps } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline } from "react-native-maps";
 
-type TabKey = "dashboard" | "map" | "reward" | "history";
+type TabKey = "dashboard" | "map" | "reward" | "history" | "profile";
 
 const rewardProgress = {
   current: 360,
@@ -19,6 +20,7 @@ const vouchers = [
     description: "Redeem this voucher for one free handcrafted coffee or tea.",
     points: 150,
     partner: "Green Bean Cafe",
+    status: "redeemed",
     accentColor: "#f59e0b",
     logoIcon: "coffee-outline",
     logoBackground: "#fff7ed",
@@ -26,25 +28,63 @@ const vouchers = [
   },
   {
     id: "2",
+    title: "Campus Smoothie Voucher",
+    description: "Redeem this voucher for one free fruit smoothie.",
+    points: 180,
+    partner: "Sun Blend Bar",
+    status: "redeemed",
+    accentColor: "#ec4899",
+    logoIcon: "cup-outline",
+    logoBackground: "#fdf2f8",
+    logoColor: "#be185d",
+  },
+  {
+    id: "3",
     title: "Bus Pass Discount",
     description: "Use this voucher to lower the cost of your next bus or metro pass.",
     points: 280,
     partner: "City Transit",
+    status: "unlock",
     accentColor: "#3b82f6",
     logoIcon: "bus-side",
     logoBackground: "#eff6ff",
     logoColor: "#1d4ed8",
   },
   {
-    id: "3",
+    id: "4",
+    title: "Lunch Combo Discount",
+    description: "Use this voucher to save on a sustainable lunch combo.",
+    points: 320,
+    partner: "Fresh Fork Cafe",
+    status: "unlock",
+    accentColor: "#8b5cf6",
+    logoIcon: "food-outline",
+    logoBackground: "#f5f3ff",
+    logoColor: "#6d28d9",
+  },
+  {
+    id: "5",
     title: "Eco Store Gift Card",
     description: "Exchange this for store credit on reusable and eco-friendly products.",
     points: 450,
     partner: "Eco Market",
+    status: "lock",
     accentColor: "#14b8a6",
     logoIcon: "leaf-circle-outline",
     logoBackground: "#f0fdfa",
     logoColor: "#0f766e",
+  },
+  {
+    id: "6",
+    title: "Weekend Rail Pass",
+    description: "Unlock a discounted rail pass for your weekend trips.",
+    points: 520,
+    partner: "Metro Valley",
+    status: "lock",
+    accentColor: "#ef4444",
+    logoIcon: "train",
+    logoBackground: "#fef2f2",
+    logoColor: "#b91c1c",
   },
 ] as const;
 
@@ -110,6 +150,13 @@ const tripHistory = [
   },
 ] as const;
 
+const profileDetails = [
+  { id: "name", label: "Name", value: "Alex Green" },
+  { id: "email", label: "Email", value: "alex.green@asu.edu" },
+  { id: "member", label: "Membership", value: "Eco Commuter" },
+  { id: "joined", label: "Joined", value: "January 2026" },
+] as const;
+
 const sustainabilityStats = [
   {
     id: "points",
@@ -159,215 +206,216 @@ export default function App() {
   const progressWidth = `${progressPercentage}%` as const;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
 
-      {activeTab !== "map" && (
-        <View style={styles.appHeader}>
-          <Text style={styles.appTitle}>Ecoride</Text>
-          <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
-        </View>
-      )}
+        {activeTab !== "map" && (
+          <View style={styles.appHeader}>
+            <Text style={styles.appTitle}>Ecoride</Text>
+            <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+          </View>
+        )}
 
-      <View style={styles.content}>
-        {activeTab === "dashboard" ? (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.heroCard}>
-              <Text style={styles.heroEyebrow}>Dashboard</Text>
-              <Text style={styles.heroTitle}>Your eco impact this week</Text>
-              <Text style={styles.heroText}>Keep riding sustainably to unlock more rewards and grow your streak.</Text>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Points and rewards</Text>
-              <View style={styles.pointsRow}>
-                <Text style={styles.pointsValue}>{rewardProgress.current} pts</Text>
-                <Text style={styles.pointsGoal}>Goal: {rewardProgress.goal} pts</Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: progressWidth }]} />
-              </View>
-              <Text style={styles.cardHint}>
-                {rewardProgress.goal - rewardProgress.current} more points until your next reward.
-              </Text>
-            </View>
-
-            <View style={styles.streakCard}>
-              <View style={styles.streakGlowLarge} />
-              <View style={styles.streakGlowSmall} />
-
-              <View style={styles.streakHeaderRow}>
-                <View style={styles.streakCopy}>
-                  <Text style={styles.streakLabel}>Current Streak</Text>
-                  <View style={styles.streakValueRow}>
-                    <MaterialCommunityIcons name="fire" size={36} color="#ffffff" />
-                    <Text style={styles.streakValue}>12</Text>
-                    <Text style={styles.streakUnit}>days</Text>
-                  </View>
-                  <Text style={styles.streakMessage}>Keep it going!</Text>
-                </View>
-
-                <View style={styles.streakIconBadge}>
-                  <MaterialCommunityIcons name="fire" size={42} color="#ffffff" />
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.mapSectionHeader}>
-              <Text style={styles.mapSectionTitle}>Statistics</Text>
-              <Text style={styles.mapSectionSubtitle}>
-                Track how your travel choices create a more sustainable map over time.
-              </Text>
-            </View>
-
-            <View style={styles.statsGrid}>
-              {sustainabilityStats.map((stat) => (
-                <View key={stat.id} style={styles.statCard}>
-                  <View style={[styles.statIconWrap, { backgroundColor: stat.iconBackground }]}>
-                    <MaterialCommunityIcons name={stat.icon} size={30} color={stat.iconColor} />
-                  </View>
-
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-
-                  <View style={styles.statTrendRow}>
-                    <MaterialCommunityIcons name="trending-up" size={18} color={stat.iconColor} />
-                    <Text style={[styles.statTrendValue, { color: stat.iconColor }]}>{stat.change}</Text>
-                    <Text style={styles.statTrendPeriod}>{stat.period}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        ) : activeTab === "history" ? (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.historyScreenHeader}>
-              <Text style={styles.historyScreenTitle}>Trip History</Text>
-            </View>
-
-            <View style={styles.historySummaryCard}>
-              <View style={styles.historySummaryTitleRow}>
-                <MaterialCommunityIcons name="trending-up" size={24} color="#ffffff" />
-                <Text style={styles.historySummaryTitle}>Path Impact Summary</Text>
-              </View>
-
-              <View style={styles.historySummaryStats}>
-                <View style={styles.historySummaryStat}>
-                  <View style={styles.historySummaryMetricRow}>
-                    <MaterialCommunityIcons name="leaf" size={28} color="#ffffff" />
-                    <Text style={styles.historySummaryValue}>175</Text>
-                  </View>
-                  <Text style={styles.historySummaryLabel}>Points this week</Text>
-                </View>
-
-                <View style={styles.historySummaryStat}>
-                  <View style={styles.historySummaryMetricRow}>
-                    <MaterialCommunityIcons name="map-marker" size={28} color="#ffffff" />
-                    <Text style={styles.historySummaryValue}>11.1</Text>
-                  </View>
-                  <Text style={styles.historySummaryLabel}>kg CO2 saved</Text>
-                </View>
-              </View>
-            </View>
-
-            {tripHistory.map((trip) => (
-              <View key={trip.id} style={styles.historyTripCard}>
-                <View style={styles.historyRoutePreview}>
-                  <View style={styles.historyPathLine} />
-                  <View style={styles.historyPathStart} />
-                  <View style={styles.historyPathEnd} />
-                </View>
-
-                <View style={styles.historyTripBody}>
-                  <View style={styles.historyMetaRow}>
-                    <View style={styles.historyMetaLeft}>
-                      <MaterialCommunityIcons name="calendar-blank-outline" size={22} color="#64748b" />
-                      <Text style={styles.historyMetaText}>
-                        {trip.date} • {trip.time}
-                      </Text>
-                    </View>
-
-                    <View style={styles.historyVehicleBadge}>
-                      <MaterialCommunityIcons name={trip.vehicleIcon} size={20} color="#ffffff" />
-                    </View>
-                  </View>
-
-                  <View style={styles.historyStops}>
-                    <View style={styles.historyStopRow}>
-                      <View style={[styles.historyStopIconWrap, styles.historyStartIconWrap]}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={18} color="#2563eb" />
-                      </View>
-                      <Text style={styles.historyStopText}>{trip.from}</Text>
-                    </View>
-
-                    <View style={styles.historyConnector} />
-
-                    <View style={styles.historyStopRow}>
-                      <View style={[styles.historyStopIconWrap, styles.historyEndIconWrap]}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={18} color="#ef4444" />
-                      </View>
-                      <Text style={styles.historyStopText}>{trip.to}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.historyFooter}>
-                    <View style={styles.historyImpactRow}>
-                      <MaterialCommunityIcons name="leaf" size={20} color="#16a34a" />
-                      <Text style={styles.historyImpactPoints}>{trip.points}</Text>
-                      <Text style={styles.historyImpactText}>{trip.co2}</Text>
-                      <Text style={styles.historyImpactText}>{trip.distance}</Text>
-                    </View>
-                    <Text style={styles.historyDuration}>{trip.duration}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Points history</Text>
-              {pointHistory.map((entry) => (
-                <View key={entry.id} style={styles.listItem}>
-                  <View>
-                    <Text style={styles.listTitle}>{entry.title}</Text>
-                    <Text style={styles.listSubtitle}>{entry.date}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.historyPoints,
-                      entry.points.startsWith("+") ? styles.positivePoints : styles.negativePoints,
-                    ]}>
-                    {entry.points}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        ) : activeTab === "reward" ? (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.rewardHeroCard}>
-              <Text style={styles.heroEyebrow}>Rewards</Text>
-              <Text style={styles.heroTitle}>Redeem your sustainable progress</Text>
-              <Text style={styles.heroText}>
-                Use the points you earned from greener trips to unlock campus-friendly perks.
-              </Text>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Rewards</Text>
-              <View style={styles.rewardPointsSummaryRow}>
-                <MaterialCommunityIcons name="gift-outline" size={18} color="#16a34a" />
-                <Text style={styles.rewardPointsSummary}>
-                  You have <Text style={styles.rewardPointsValue}>{rewardProgress.current}</Text> points
+        <View style={styles.content}>
+          {activeTab === "dashboard" ? (
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.heroCard}>
+                <Text style={styles.heroEyebrow}>Dashboard</Text>
+                <Text style={styles.heroTitle}>Your eco impact this week</Text>
+                <Text style={styles.heroText}>
+                  Keep riding sustainably to unlock more rewards and grow your streak.
                 </Text>
               </View>
-              {vouchers.map((voucher) => (
-                <View
-                  key={voucher.id}
-                  style={[
-                    styles.voucherCard,
-                    rewardProgress.current < voucher.points ? styles.voucherCardLocked : null,
-                  ]}>
-                  <View style={[styles.voucherTopGlow, { backgroundColor: voucher.accentColor }]} />
+
+              <View style={styles.card}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={styles.cardTitle}>Points and rewards</Text>
+                  <Pressable style={styles.rewardsLinkInline} onPress={() => setActiveTab("reward")}>
+                    <Text style={styles.rewardsLinkText}>Go to Reward</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.pointsRow}>
+                  <Text style={styles.pointsValue}>{rewardProgress.current} pts</Text>
+                  <Text style={styles.pointsGoal}>Goal: {rewardProgress.goal} pts</Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: progressWidth }]} />
+                </View>
+                <Text style={styles.cardHint}>
+                  {rewardProgress.goal - rewardProgress.current} more points until your next reward.
+                </Text>
+              </View>
+
+              <View style={styles.streakCard}>
+                <View style={styles.streakGlowLarge} />
+                <View style={styles.streakGlowSmall} />
+
+                <View style={styles.streakHeaderRow}>
+                  <View style={styles.streakCopy}>
+                    <Text style={styles.streakLabel}>Current Streak</Text>
+                    <View style={styles.streakValueRow}>
+                      <MaterialCommunityIcons name="fire" size={36} color="#ffffff" />
+                      <Text style={styles.streakValue}>12</Text>
+                      <Text style={styles.streakUnit}>days</Text>
+                    </View>
+                    <Text style={styles.streakMessage}>Keep it going!</Text>
+                  </View>
+
+                  <View style={styles.streakIconBadge}>
+                    <MaterialCommunityIcons name="fire" size={42} color="#ffffff" />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.mapSectionHeader}>
+                <Text style={styles.mapSectionTitle}>Statistics</Text>
+                <Text style={styles.mapSectionSubtitle}>
+                  Track how your travel choices create a more sustainable map over time.
+                </Text>
+              </View>
+
+              <View style={styles.statsGrid}>
+                {sustainabilityStats.map((stat) => (
+                  <View key={stat.id} style={styles.statCard}>
+                    <View style={[styles.statIconWrap, { backgroundColor: stat.iconBackground }]}>
+                      <MaterialCommunityIcons name={stat.icon} size={30} color={stat.iconColor} />
+                    </View>
+
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+
+                    <View style={styles.statTrendRow}>
+                      <MaterialCommunityIcons name="trending-up" size={18} color={stat.iconColor} />
+                      <Text style={[styles.statTrendValue, { color: stat.iconColor }]}>{stat.change}</Text>
+                      <Text style={styles.statTrendPeriod}>{stat.period}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          ) : activeTab === "history" ? (
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.historyScreenHeader}>
+                <Text style={styles.historyScreenTitle}>Trip History</Text>
+              </View>
+
+              <View style={styles.historySummaryCard}>
+                <View style={styles.historySummaryTitleRow}>
+                  <MaterialCommunityIcons name="trending-up" size={24} color="#ffffff" />
+                  <Text style={styles.historySummaryTitle}>Path Impact Summary</Text>
+                </View>
+
+                <View style={styles.historySummaryStats}>
+                  <View style={styles.historySummaryStat}>
+                    <View style={styles.historySummaryMetricRow}>
+                      <MaterialCommunityIcons name="leaf" size={28} color="#ffffff" />
+                      <Text style={styles.historySummaryValue}>175</Text>
+                    </View>
+                    <Text style={styles.historySummaryLabel}>Points this week</Text>
+                  </View>
+
+                  <View style={styles.historySummaryStat}>
+                    <View style={styles.historySummaryMetricRow}>
+                      <MaterialCommunityIcons name="map-marker" size={28} color="#ffffff" />
+                      <Text style={styles.historySummaryValue}>11.1</Text>
+                    </View>
+                    <Text style={styles.historySummaryLabel}>kg CO2 saved</Text>
+                  </View>
+                </View>
+              </View>
+
+              {tripHistory.map((trip) => (
+                <View key={trip.id} style={styles.historyTripCard}>
+                  <View style={styles.historyRoutePreview}>
+                    <View style={styles.historyPathLine} />
+                    <View style={styles.historyPathStart} />
+                    <View style={styles.historyPathEnd} />
+                  </View>
+
+                  <View style={styles.historyTripBody}>
+                    <View style={styles.historyMetaRow}>
+                      <View style={styles.historyMetaLeft}>
+                        <MaterialCommunityIcons name="calendar-blank-outline" size={22} color="#64748b" />
+                        <Text style={styles.historyMetaText}>
+                          {trip.date} • {trip.time}
+                        </Text>
+                      </View>
+
+                      <View style={styles.historyVehicleBadge}>
+                        <MaterialCommunityIcons name={trip.vehicleIcon} size={20} color="#ffffff" />
+                      </View>
+                    </View>
+
+                    <View style={styles.historyStops}>
+                      <View style={styles.historyStopRow}>
+                        <View style={[styles.historyStopIconWrap, styles.historyStartIconWrap]}>
+                          <MaterialCommunityIcons name="map-marker-outline" size={18} color="#2563eb" />
+                        </View>
+                        <Text style={styles.historyStopText}>{trip.from}</Text>
+                      </View>
+
+                      <View style={styles.historyConnector} />
+
+                      <View style={styles.historyStopRow}>
+                        <View style={[styles.historyStopIconWrap, styles.historyEndIconWrap]}>
+                          <MaterialCommunityIcons name="map-marker-outline" size={18} color="#ef4444" />
+                        </View>
+                        <Text style={styles.historyStopText}>{trip.to}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.historyFooter}>
+                      <View style={styles.historyImpactRow}>
+                        <MaterialCommunityIcons name="leaf" size={20} color="#16a34a" />
+                        <Text style={styles.historyImpactPoints}>{trip.points}</Text>
+                        <Text style={styles.historyImpactText}>{trip.co2}</Text>
+                        <Text style={styles.historyImpactText}>{trip.distance}</Text>
+                      </View>
+                      <Text style={styles.historyDuration}>{trip.duration}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Points history</Text>
+                {pointHistory.map((entry) => (
+                  <View key={entry.id} style={styles.listItem}>
+                    <View>
+                      <Text style={styles.listTitle}>{entry.title}</Text>
+                      <Text style={styles.listSubtitle}>{entry.date}</Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.historyPoints,
+                        entry.points.startsWith("+") ? styles.positivePoints : styles.negativePoints,
+                      ]}>
+                      {entry.points}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          ) : activeTab === "reward" ? (
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Rewards</Text>
+                <View style={styles.rewardPointsSummaryRow}>
+                  <MaterialCommunityIcons name="gift-outline" size={18} color="#16a34a" />
+                  <Text style={styles.rewardPointsSummary}>
+                    You have <Text style={styles.rewardPointsValue}>{rewardProgress.current}</Text> points
+                  </Text>
+                </View>
+                {vouchers.map((voucher) => (
+                  <View
+                    key={voucher.id}
+                    style={[
+                      styles.voucherCard,
+                      voucher.status === "lock" ? styles.voucherCardLocked : null,
+                      voucher.status === "redeemed" ? styles.voucherCardRedeemed : null,
+                    ]}>
+                    <View style={[styles.voucherTopGlow, { backgroundColor: voucher.accentColor }]} />
 
                   <View style={styles.voucherHeader}>
                     <View style={styles.voucherBrandRow}>
@@ -375,94 +423,137 @@ export default function App() {
                         <MaterialCommunityIcons name={voucher.logoIcon} size={18} color={voucher.logoColor} />
                       </View>
 
-                      <View style={styles.voucherTitleBlock}>
-                        <Text style={styles.voucherTitle}>{voucher.title}</Text>
-                        <Text style={styles.voucherPartner}>{voucher.partner}</Text>
+                        <View style={styles.voucherTitleBlock}>
+                          <Text style={styles.voucherTitle}>{voucher.title}</Text>
+                          <Text style={styles.voucherPartner}>{voucher.partner}</Text>
+                        </View>
                       </View>
+
+                      {voucher.status === "redeemed" ? (
+                        <View style={styles.voucherStatusRedeemed}>
+                          <MaterialCommunityIcons name="check-decagram" size={24} color="#0f7f4f" />
+                        </View>
+                      ) : voucher.status === "unlock" ? (
+                        <View style={styles.voucherStatusAvailable}>
+                          <MaterialCommunityIcons name="check-circle-outline" size={28} color="#22c55e" />
+                        </View>
+                      ) : (
+                        <View style={styles.voucherStatusLocked}>
+                          <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
+                        </View>
+                      )}
                     </View>
 
-                    {rewardProgress.current >= voucher.points ? (
-                      <View style={styles.voucherStatusAvailable}>
-                        <MaterialCommunityIcons name="check-circle-outline" size={28} color="#22c55e" />
-                      </View>
-                    ) : (
-                      <View style={styles.voucherStatusLocked}>
-                        <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
-                      </View>
-                    )}
-                  </View>
+                    <Text style={styles.voucherDescription}>{voucher.description}</Text>
 
-                  <Text style={styles.voucherDescription}>{voucher.description}</Text>
+                    <View style={styles.voucherFooter}>
+                      <View style={styles.voucherPointsRow}>
+                        <Text style={styles.voucherPointsLabel}>Required points:</Text>
+                        <Text style={styles.voucherPointsValue}>{voucher.points} pts</Text>
+                      </View>
 
-                  <View style={styles.voucherFooter}>
-                    <View style={styles.voucherPointsRow}>
-                      <Text style={styles.voucherPointsLabel}>Required points:</Text>
-                      <Text style={styles.voucherPointsValue}>{voucher.points} pts</Text>
+                      {voucher.status === "redeemed" ? (
+                        <Text style={styles.voucherRedeemedLabel}>Redeemed</Text>
+                      ) : voucher.status === "unlock" ? (
+                        <Pressable style={styles.redeemButton}>
+                          <Text style={styles.redeemButtonText}>Redeem</Text>
+                        </Pressable>
+                      ) : (
+                        <View style={styles.voucherMissingWrap}>
+                          <Text style={styles.voucherMissingText}>
+                            Need {voucher.points - rewardProgress.current} more pts
+                          </Text>
+                        </View>
+                      )}
                     </View>
-
-                    {rewardProgress.current >= voucher.points ? (
-                      <Pressable style={styles.redeemButton}>
-                        <Text style={styles.redeemButtonText}>Redeem</Text>
-                      </Pressable>
-                    ) : (
-                      <View style={styles.voucherMissingWrap}>
-                        <Text style={styles.voucherMissingText}>
-                          Need {voucher.points - rewardProgress.current} more pts
-                        </Text>
-                      </View>
-                    )}
                   </View>
+                ))}
+              </View>
+            </ScrollView>
+          ) : activeTab === "profile" ? (
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.profileHeroCard}>
+                <View style={styles.profileAvatar}>
+                  <MaterialCommunityIcons name="account-outline" size={34} color="#ffffff" />
                 </View>
-              ))}
-            </View>
-          </ScrollView>
-        ) : (
-          <View style={styles.mapWrapper}>
-            <MapView
-              initialRegion={mapRegion}
-              style={StyleSheet.absoluteFillObject}
-              showsCompass
-              loadingEnabled
-              onRegionChangeComplete={(region) => console.log("Region changed:", region)}>
-              {mapMarkers.map((marker) => (
-                <Marker
-                  key={marker.id}
-                  coordinate={marker.coordinate}
-                  title={marker.title}
-                  description={marker.description}
-                  onPress={() => console.log(`Marker pressed: ${marker.title}`)}
+                <Text style={styles.profileHeroTitle}>Profile</Text>
+                <Text style={styles.profileHeroSubtitle}>
+                  Manage your account and review your sustainable activity.
+                </Text>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Account Detail</Text>
+                {profileDetails.map((detail, index) => (
+                  <View
+                    key={detail.id}
+                    style={[styles.profileDetailRow, index === 0 ? styles.profileDetailRowFirst : null]}>
+                    <Text style={styles.profileDetailLabel}>{detail.label}</Text>
+                    <Text style={styles.profileDetailValue}>{detail.value}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Pressable style={[styles.card, styles.profileHistoryCard]} onPress={() => setActiveTab("history")}>
+                <Text style={styles.cardTitle}>Trip History</Text>
+              </Pressable>
+
+              <Pressable style={styles.logoutButton}>
+                <MaterialCommunityIcons name="logout" size={20} color="#ffffff" />
+                <Text style={styles.logoutButtonText}>Log out</Text>
+              </Pressable>
+            </ScrollView>
+          ) : (
+            <View style={styles.mapWrapper}>
+              <MapView
+                initialRegion={mapRegion}
+                style={StyleSheet.absoluteFillObject}
+                showsCompass
+                loadingEnabled
+                onRegionChangeComplete={(region) => console.log("Region changed:", region)}>
+                {mapMarkers.map((marker) => (
+                  <Marker
+                    key={marker.id}
+                    coordinate={marker.coordinate}
+                    title={marker.title}
+                    description={marker.description}
+                    onPress={() => console.log(`Marker pressed: ${marker.title}`)}
+                  />
+                ))}
+                <Polyline
+                  coordinates={[
+                    { latitude: 33.4484, longitude: -112.074 },
+                    { latitude: 33.4524, longitude: -112.0758 },
+                  ]}
+                  strokeColor="#000"
+                  strokeWidth={3}
                 />
-              ))}
-              <Polyline
-                coordinates={[
-                  { latitude: 33.4484, longitude: -112.074 },
-                  { latitude: 33.4524, longitude: -112.0758 },
-                ]}
-                strokeColor="#000"
-                strokeWidth={3}
-              />
-            </MapView>
+              </MapView>
 
-            <View style={styles.mapSearchBar}>
-              <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
-              <Text style={styles.mapSearchInput}>Search destinations, streets, transit stops</Text>
-              <MaterialCommunityIcons name="microphone" size={20} color="#475569" />
+              <View style={styles.mapSearchBar}>
+                <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
+                <Text style={styles.mapSearchInput}>Search destinations, streets, transit stops</Text>
+                <MaterialCommunityIcons name="microphone" size={20} color="#475569" />
+              </View>
             </View>
-          </View>
-        )}
-      </View>
+          )}
+        </View>
 
-      <View style={styles.tabBar}>
-        <TabButton
-          icon="view-dashboard-outline"
-          isActive={activeTab === "dashboard"}
-          onPress={() => setActiveTab("dashboard")}
-        />
-        <TabButton icon="map-marker-outline" isActive={activeTab === "map"} onPress={() => setActiveTab("map")} />
-        <TabButton icon="gift-outline" isActive={activeTab === "reward"} onPress={() => setActiveTab("reward")} />
-        <TabButton icon="history" isActive={activeTab === "history"} onPress={() => setActiveTab("history")} />
-      </View>
-    </SafeAreaView>
+        <View style={styles.tabBar}>
+          <TabButton
+            icon="view-dashboard-outline"
+            isActive={activeTab === "dashboard"}
+            onPress={() => setActiveTab("dashboard")}
+          />
+          <TabButton icon="map-marker-outline" isActive={activeTab === "map"} onPress={() => setActiveTab("map")} />
+          <TabButton
+            icon="account-outline"
+            isActive={activeTab === "profile"}
+            onPress={() => setActiveTab("profile")}
+          />
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -513,10 +604,31 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
   },
-  rewardHeroCard: {
-    backgroundColor: "#14532d",
+  profileHeroCard: {
+    backgroundColor: "#0f5c45",
     borderRadius: 24,
-    padding: 20,
+    padding: 24,
+    alignItems: "flex-start",
+  },
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  profileHeroTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  profileHeroSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#dff8ea",
   },
   historyScreenHeader: {
     paddingTop: 4,
@@ -740,6 +852,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#173127",
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
     marginBottom: 14,
   },
   pointsRow: {
@@ -756,6 +874,17 @@ const styles = StyleSheet.create({
   pointsGoal: {
     fontSize: 14,
     color: "#658277",
+  },
+  rewardsLinkInline: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  rewardsLinkText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f5c45",
+    textDecorationLine: "underline",
   },
   progressTrack: {
     height: 14,
@@ -871,6 +1000,68 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6c857b",
   },
+  profileDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#edf4ef",
+  },
+  profileDetailRowFirst: {
+    paddingTop: 0,
+    borderTopWidth: 0,
+  },
+  profileDetailLabel: {
+    fontSize: 14,
+    color: "#6c857b",
+  },
+  profileDetailValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#173127",
+  },
+  profileHistoryCard: {
+    gap: 14,
+  },
+  profileHistoryButtonTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0f5c45",
+  },
+  profileTripRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#edf4ef",
+  },
+  profileTripRowFirst: {
+    paddingTop: 0,
+    borderTopWidth: 0,
+  },
+  profileTripText: {
+    flex: 1,
+  },
+  profileTripRoute: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#173127",
+  },
+  profileTripMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#6c857b",
+  },
+  profileTripPoints: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#17985e",
+  },
   badge: {
     backgroundColor: "#e8f7ef",
     borderRadius: 999,
@@ -886,25 +1077,32 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
     backgroundColor: "#ffffff",
-    borderRadius: 26,
-    padding: 18,
-    marginTop: 14,
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 18,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e7edf2",
     shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   voucherCardLocked: {
-    backgroundColor: "#f5f6f8",
-    opacity: 0.86,
+    backgroundColor: "#f7f8fa",
+    opacity: 0.88,
+  },
+  voucherCardRedeemed: {
+    backgroundColor: "#ffffff",
   },
   voucherTopGlow: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 12,
+    height: 10,
   },
   voucherHeader: {
     flexDirection: "row",
@@ -916,13 +1114,13 @@ const styles = StyleSheet.create({
   voucherBrandRow: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
   voucherLogoWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -930,16 +1128,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   voucherTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
-    color: "#173127",
+    color: "#0f172a",
     marginBottom: 4,
   },
   voucherPartner: {
-    fontSize: 13,
-    color: "#648176",
+    fontSize: 14,
+    color: "#64748b",
   },
   voucherStatusAvailable: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+  },
+  voucherStatusRedeemed: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -959,9 +1166,10 @@ const styles = StyleSheet.create({
   },
   voucherDescription: {
     fontSize: 14,
-    lineHeight: 21,
-    color: "#4f6b61",
-    marginBottom: 18,
+    lineHeight: 22,
+    color: "#334155",
+    marginBottom: 14,
+    paddingLeft: 68,
   },
   voucherFooter: {
     flexDirection: "row",
@@ -972,24 +1180,26 @@ const styles = StyleSheet.create({
   voucherPointsRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 8,
+    gap: 6,
     flexWrap: "wrap",
   },
   voucherPointsLabel: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#6b7f76",
+    fontWeight: "500",
+    color: "#334155",
   },
   voucherPointsValue: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#0f5c45",
+    color: "#0f172a",
   },
   redeemButton: {
-    backgroundColor: "#0f5c45",
+    backgroundColor: "#198754",
     borderRadius: 14,
     paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingVertical: 11,
+    minWidth: 108,
+    alignItems: "center",
   },
   redeemButtonText: {
     fontSize: 14,
@@ -999,13 +1209,18 @@ const styles = StyleSheet.create({
   voucherMissingWrap: {
     backgroundColor: "#eef2f6",
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   voucherMissingText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#64748b",
+  },
+  voucherRedeemedLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#16a34a",
   },
   rewardPointsSummaryRow: {
     flexDirection: "row",
@@ -1153,6 +1368,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#475569",
     marginLeft: 12,
+  },
+  logoutButton: {
+    backgroundColor: "#c2410c",
+    borderRadius: 18,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#ffffff",
   },
   tabBar: {
     flexDirection: "row",
