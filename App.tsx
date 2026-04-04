@@ -54,75 +54,6 @@ const pointHistory = [
   { id: "3", title: "Completed weekly eco goal", points: "+80", date: "Apr 2" },
   { id: "4", title: "Redeemed coffee voucher", points: "-150", date: "Apr 1" },
 ];
-const tripHistory = [
-  {
-    id: "1",
-    date: "Today",
-    time: "2:30 PM",
-    from: "Home",
-    to: "Central Park",
-    points: "+40",
-    co2: "2.5 kg CO2",
-    distance: "3.2 km",
-    duration: "15 min",
-    vehicleIcon: "walk",
-  },
-  {
-    id: "2",
-    date: "Yesterday",
-    time: "8:10 AM",
-    from: "Dorm A",
-    to: "ASU Campus",
-    points: "+25",
-    co2: "1.8 kg CO2",
-    distance: "4.1 km",
-    duration: "18 min",
-    vehicleIcon: "bike-fast",
-  },
-] as const;
-
-const sustainabilityStats = [
-  {
-    id: "points",
-    label: "Sustainable Points",
-    value: "175",
-    change: "+12%",
-    period: "this week",
-    icon: "leaf",
-    iconColor: "#16a34a",
-    iconBackground: "#dcfce7",
-  },
-  {
-    id: "co2",
-    label: "kg of CO2 Saved",
-    value: "11.1",
-    change: "+8%",
-    period: "this week",
-    icon: "cloud-check-outline",
-    iconColor: "#2563eb",
-    iconBackground: "#dbeafe",
-  },
-  {
-    id: "trips",
-    label: "Trips Completed",
-    value: "5",
-    change: "+25%",
-    period: "vs last month",
-    icon: "map-marker-path",
-    iconColor: "#9333ea",
-    iconBackground: "#f3e8ff",
-  },
-  {
-    id: "achievements",
-    label: "Achievements",
-    value: "8",
-    change: "+2",
-    period: "new this month",
-    icon: "trophy-outline",
-    iconColor: "#d97706",
-    iconBackground: "#fef3c7",
-  },
-] as const;
 
 const mapRegion = {
   latitude: 33.4484,
@@ -492,8 +423,7 @@ export default function App() {
               style={StyleSheet.absoluteFillObject}
               showsCompass
               loadingEnabled
-              onRegionChangeComplete={(region) => console.log("Region changed:", region)}
-            >
+              onRegionChangeComplete={(region) => console.log("Region changed:", region)}>
               {mapMarkers.map((marker) => (
                 <Marker
                   key={marker.id}
@@ -1111,9 +1041,6 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 18,
   },
-  mapSectionHeader: {
-    paddingTop: 4,
-  },
   mapSectionTitle: {
     fontSize: 30,
     fontWeight: "800",
@@ -1196,64 +1123,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#0b3d2e",
     marginBottom: 6,
-  },
-  mapSectionSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#5c786d",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 16,
-  },
-  statCard: {
-    width: "47%",
-    minHeight: 190,
-    backgroundColor: "#ffffff",
-    borderRadius: 24,
-    padding: 18,
-    shadowColor: "#0b3d2e",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
-  },
-  statIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 22,
-  },
-  statValue: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 16,
-    lineHeight: 23,
-    color: "#334e68",
-    marginBottom: 16,
-  },
-  statTrendRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: "auto",
-  },
-  statTrendValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  statTrendPeriod: {
-    fontSize: 15,
-    color: "#64748b",
   },
   mapWrapper: {
     flex: 1,
