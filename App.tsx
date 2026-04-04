@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import MapView, { Marker, Polyline } from "react-native-maps";
 
 type TabKey = "dashboard" | "map";
 
@@ -21,6 +22,28 @@ const pointHistory = [
   { id: "2", title: "Used public transport", points: "+25", date: "Yesterday" },
   { id: "3", title: "Completed weekly eco goal", points: "+80", date: "Apr 2" },
   { id: "4", title: "Redeemed coffee voucher", points: "-150", date: "Apr 1" },
+];
+
+const mapRegion = {
+  latitude: 33.4484,
+  longitude: -112.074,
+  latitudeDelta: 0.055,
+  longitudeDelta: 0.055,
+};
+
+const mapMarkers = [
+  {
+    id: "hub-1",
+    title: "Greenway Hub",
+    description: "Bike and e-scooter pickup point",
+    coordinate: { latitude: 33.4524, longitude: -112.0758 },
+  },
+  {
+    id: "hub-2",
+    title: "Eco Transit Station",
+    description: "Next bus departure: 4 min",
+    coordinate: { latitude: 33.4416, longitude: -112.0712 },
+  },
 ];
 
 export default function App() {
@@ -103,8 +126,37 @@ export default function App() {
         ) : (
           <View style={styles.mapScreen}>
             <View style={styles.mapPlaceholder}>
-              <Text style={styles.mapTitle}>Map GUI</Text>
-              <Text style={styles.mapSubtitle}>Empty screen reserved for the upcoming map experience.</Text>
+              <MapView
+                initialRegion={mapRegion}
+                style={styles.mapView}
+                showsCompass
+                loadingEnabled
+                onRegionChangeComplete={(region) => console.log("Region changed:", region)}
+              >
+                {mapMarkers.map((marker) => (
+                  <Marker
+                    key={marker.id}
+                    coordinate={marker.coordinate}
+                    title={marker.title}
+                    description={marker.description}
+                    onPress={() => console.log(`Marker pressed: ${marker.title}`)}
+                  />
+                ))}
+                <Polyline
+                  coordinates={[
+                    { latitude: 33.4484, longitude: -112.074 },
+                    { latitude: 33.4524, longitude: -112.0758 },
+                  ]}
+                  strokeColor="#000" // Black
+                  strokeWidth={3}
+                />
+              </MapView>
+              <View style={styles.mapOverlay}>
+                <Text style={styles.mapTitle}>Local mobility map</Text>
+                <Text style={styles.mapSubtitle}>
+                  Tap and hold to highlight carpool lanes, chargers, and safe bike corridors.
+                </Text>
+              </View>
             </View>
           </View>
         )}
@@ -300,23 +352,36 @@ const styles = StyleSheet.create({
     borderColor: "#b8d8c7",
     borderStyle: "dashed",
     backgroundColor: "#f8fcf9",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 28,
+    overflow: "hidden",
     marginHorizontal: 4,
     marginBottom: 12,
   },
+  mapView: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapOverlay: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    bottom: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
   mapTitle: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: "800",
     color: "#0b3d2e",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   mapSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     color: "#5c786d",
-    textAlign: "center",
   },
   tabBar: {
     flexDirection: "row",
