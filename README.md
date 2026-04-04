@@ -1,4 +1,4 @@
-# Innovation-Hacks-2026
+# Ecoride
 
 This repository now contains a React Native project built with Expo and TypeScript.
 
