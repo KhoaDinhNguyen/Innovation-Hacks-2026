@@ -2,9 +2,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import type { ComponentProps } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 
 type TabKey = "dashboard" | "map" | "reward" | "history" | "profile" | "tracking";
 
@@ -98,8 +108,8 @@ const pointHistory = [
 const mapRegion = {
   latitude: 33.4484,
   longitude: -112.074,
-  latitudeDelta: 0.028,
-  longitudeDelta: 0.028,
+  latitudeDelta: 0.007,
+  longitudeDelta: 0.007,
 } as const;
 
 const driverLocation = {
@@ -115,21 +125,67 @@ const packageLocation = {
 const nearbyPackages = [
   {
     id: "pkg-1",
-    title: "Mock package pickup",
+    title: "Package A-102",
     description: "Package ready for pickup near your current location.",
+    locationLabel: "North Gate Loading Zone",
+    rewardPoints: 30,
     coordinate: packageLocation,
   },
   {
     id: "pkg-2",
-    title: "Mock package pickup",
+    title: "Package B-214",
     description: "Small parcel waiting outside a nearby building.",
+    locationLabel: "Tempe Market Entrance",
+    rewardPoints: 30,
     coordinate: { latitude: 33.4479, longitude: -112.0728 },
   },
   {
     id: "pkg-3",
-    title: "Mock package pickup",
+    title: "Package C-330",
     description: "Delivery bag available for collection across the street.",
+    locationLabel: "Rio Plaza Pickup Spot",
+    rewardPoints: 30,
     coordinate: { latitude: 33.4488, longitude: -112.0751 },
+  },
+  {
+    id: "pkg-4",
+    title: "Package D-411",
+    description: "A recyclable parcel is waiting by the east curb.",
+    locationLabel: "East Library Drop Point",
+    rewardPoints: 25,
+    coordinate: { latitude: 33.4494, longitude: -112.0747 },
+  },
+  {
+    id: "pkg-5",
+    title: "Package E-522",
+    description: "A boxed item is queued for driver pickup near the plaza.",
+    locationLabel: "Civic Center Plaza",
+    rewardPoints: 20,
+    coordinate: { latitude: 33.4475, longitude: -112.0746 },
+  },
+  {
+    id: "pkg-6",
+    title: "Package F-607",
+    description: "A delivery envelope is waiting near the corner stop.",
+    locationLabel: "Central Transit Corner",
+    rewardPoints: 35,
+    coordinate: { latitude: 33.4482, longitude: -112.0722 },
+  },
+  {
+    id: "pkg-7",
+    title: "Package G-715",
+    description: "This parcel has already been claimed by another driver.",
+    locationLabel: "West Office Entrance",
+    rewardPoints: 28,
+    coordinate: { latitude: 33.4496, longitude: -112.0738 },
+  },
+  {
+    id: "pkg-8",
+    title: "Package H-804",
+    description: "A nearby pickup already assigned to a different driver.",
+    locationLabel: "Market Street Corner",
+    rewardPoints: 22,
+    coordinate: { latitude: 33.4477, longitude: -112.0754 },
   },
 ] as const;
 
@@ -262,12 +318,25 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
-  const progressPercentage = (rewardProgress.current / rewardProgress.goal) * 100;
+  const [currentPoints, setCurrentPoints] = useState(rewardProgress.current);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [showDriverNotice, setShowDriverNotice] = useState(false);
+  const [packageStatuses, setPackageStatuses] = useState<Record<string, "available" | "delivery" | "taken">>(() =>
+    Object.fromEntries(
+      nearbyPackages.map((pkg) => [pkg.id, pkg.id === "pkg-7" || pkg.id === "pkg-8" ? "taken" : "available"]),
+    ),
+  );
+  const progressPercentage = (currentPoints / rewardProgress.goal) * 100;
   const progressWidth = `${progressPercentage}%` as const;
+  const selectedPackage = nearbyPackages.find((pkg) => pkg.id === selectedPackageId) ?? null;
+  const selectedPackageStatus = selectedPackage ? packageStatuses[selectedPackage.id] : null;
+  const deliveryCount = Object.values(packageStatuses).filter((status) => status === "delivery").length;
+  const availablePackageCount = Object.values(packageStatuses).filter((status) => status === "available").length;
+  const canPickupMorePackages = deliveryCount < 3;
   const currentHonor =
-    rewardProgress.current >= 500
+    currentPoints >= 500
       ? 'The "Gaia Vanguard"'
-      : rewardProgress.current >= 300
+      : currentPoints >= 300
         ? 'The "Kinetic Strategist"'
         : 'The "Eco-Explorer"';
 
@@ -293,6 +362,15 @@ export default function App() {
     setIsLoggedIn(false);
     setLoginPassword("");
     setActiveTab("dashboard");
+  };
+
+  const handlePickupPackage = () => {
+    if (!selectedPackage || selectedPackageStatus !== "available" || !canPickupMorePackages) {
+      return;
+    }
+
+    setPackageStatuses((prev) => ({ ...prev, [selectedPackage.id]: "delivery" }));
+    setCurrentPoints((prev) => prev + selectedPackage.rewardPoints);
   };
 
   if (!isLoggedIn) {
@@ -374,12 +452,40 @@ export default function App() {
                 <Text style={styles.appTitle}>Ecoride</Text>
                 <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
               </View>
-              {/* <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
-                <Text style={styles.logoutButtonText}>Log out</Text>
-              </Pressable> */}
+              <View style={styles.appHeaderActions}>
+                <Pressable
+                  style={styles.notificationBell}
+                  onPress={() => setShowDriverNotice((prev) => !prev)}
+                  hitSlop={10}>
+                  <MaterialCommunityIcons name="bell-outline" size={22} color="#0f5c45" />
+                  {availablePackageCount > 0 ? <View style={styles.notificationDot} /> : null}
+                </Pressable>
+              </View>
             </View>
           </View>
         )}
+
+        <Modal
+          visible={showDriverNotice}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDriverNotice(false)}>
+          <Pressable style={styles.driverNoticeOverlay} onPress={() => setShowDriverNotice(false)}>
+            <Pressable
+              style={styles.driverNoticeModal}
+              onPress={() => {
+                setShowDriverNotice(false);
+                setActiveTab("map");
+              }}>
+              <View style={styles.driverNoticeHeader}>
+                <MaterialCommunityIcons name="package-variant-closed" size={18} color="#0f5c45" />
+                <Text style={styles.driverNoticeTitle}>Nearby packages</Text>
+              </View>
+              <Text style={styles.driverNoticeCount}>{availablePackageCount}</Text>
+              <Text style={styles.driverNoticeText}>packages near your location you can pick up</Text>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <View style={styles.content}>
           {activeTab === "dashboard" ? (
@@ -400,7 +506,7 @@ export default function App() {
                   </Pressable>
                 </View>
                 <View style={styles.trackingPointsRow}>
-                  <Text style={styles.trackingPointsValue}>{rewardProgress.current} pts</Text>
+                  <Text style={styles.trackingPointsValue}>{currentPoints} pts</Text>
                   <Text style={styles.trackingPointsGoal}>Next milestone: {rewardProgress.goal} pts</Text>
                 </View>
                 <Text style={styles.trackingCurrentRank}>{currentHonor}</Text>
@@ -408,7 +514,7 @@ export default function App() {
                   <View style={[styles.progressFill, { width: progressWidth }]} />
                 </View>
                 <Text style={styles.cardHint}>
-                  {rewardProgress.goal - rewardProgress.current} more points until your next reward.
+                  {rewardProgress.goal - currentPoints} more points until your next reward.
                 </Text>
               </View>
 
@@ -479,7 +585,7 @@ export default function App() {
                   style={[
                     styles.card,
                     tier.title === currentHonor ? styles.activeHonorCard : null,
-                    rewardProgress.current < tier.pointsRequired ? styles.lockedHonorCard : null,
+                    currentPoints < tier.pointsRequired ? styles.lockedHonorCard : null,
                   ]}>
                   <View style={styles.honorCard}>
                     <View style={styles.honorTopRow}>
@@ -488,7 +594,7 @@ export default function App() {
                       </View>
                       {tier.title === currentHonor ? (
                         <Text style={styles.honorCurrentLabel}>Current</Text>
-                      ) : rewardProgress.current < tier.pointsRequired ? (
+                      ) : currentPoints < tier.pointsRequired ? (
                         <Text style={styles.honorLockLabel}>Locked</Text>
                       ) : (
                         <View />
@@ -620,7 +726,7 @@ export default function App() {
                 <View style={styles.rewardPointsSummaryRow}>
                   <MaterialCommunityIcons name="gift-outline" size={18} color="#16a34a" />
                   <Text style={styles.rewardPointsSummary}>
-                    You have <Text style={styles.rewardPointsValue}>{rewardProgress.current}</Text> points
+                    You have <Text style={styles.rewardPointsValue}>{currentPoints}</Text> points
                   </Text>
                 </View>
               </View>
@@ -679,9 +785,7 @@ export default function App() {
                         </Pressable>
                       ) : (
                         <View style={styles.voucherMissingWrap}>
-                          <Text style={styles.voucherMissingText}>
-                            Need {voucher.points - rewardProgress.current} more pts
-                          </Text>
+                          <Text style={styles.voucherMissingText}>Need {voucher.points - currentPoints} more pts</Text>
                         </View>
                       )}
                     </View>
@@ -729,47 +833,79 @@ export default function App() {
                 style={StyleSheet.absoluteFillObject}
                 showsCompass
                 loadingEnabled
+                onPress={() => setSelectedPackageId(null)}
                 onRegionChangeComplete={(region) => console.log("Region changed:", region)}>
                 <Marker
                   coordinate={driverLocation}
                   title="Your vehicle"
                   description="You are online and ready to pick up deliveries.">
-                  <View style={styles.driverMarker}>
-                    <MaterialCommunityIcons name="car" size={18} color="#ffffff" />
+                  <View style={styles.driverMarkerWrap}>
+                    <View style={styles.driverMarker}>
+                      <MaterialCommunityIcons name="car" size={18} color="#ffffff" />
+                    </View>
+                    <View style={styles.driverMarkerTail} />
                   </View>
                 </Marker>
                 {nearbyPackages.map((pkg) => (
-                  <Marker key={pkg.id} coordinate={pkg.coordinate} title={pkg.title} description={pkg.description}>
-                    <View style={styles.packageMarker}>
-                      <MaterialCommunityIcons name="package-variant-closed" size={18} color="#ffffff" />
+                  <Marker key={pkg.id} coordinate={pkg.coordinate} onPress={() => setSelectedPackageId(pkg.id)}>
+                    <View style={styles.packageMarkerWrap}>
+                      <View
+                        style={[
+                          styles.packageMarker,
+                          packageStatuses[pkg.id] === "delivery" ? styles.packageMarkerDelivery : null,
+                          packageStatuses[pkg.id] === "taken" ? styles.packageMarkerTaken : null,
+                        ]}>
+                        <MaterialCommunityIcons name="package-variant-closed" size={18} color="#ffffff" />
+                      </View>
+                      <View
+                        style={[
+                          styles.packageMarkerTail,
+                          packageStatuses[pkg.id] === "delivery" ? styles.packageMarkerTailDelivery : null,
+                          packageStatuses[pkg.id] === "taken" ? styles.packageMarkerTailTaken : null,
+                        ]}
+                      />
                     </View>
                   </Marker>
                 ))}
-                <Polyline
-                  coordinates={[
-                    driverLocation,
-                    nearbyPackages[0].coordinate,
-                    nearbyPackages[1].coordinate,
-                    nearbyPackages[2].coordinate,
-                    { latitude: 33.4524, longitude: -112.0758 },
-                  ]}
-                  strokeColor="#000"
-                  strokeWidth={3}
-                />
               </MapView>
 
-              <View style={styles.mapSearchBar}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
-                <Text style={styles.mapSearchInput}>Search destinations, streets, transit stops</Text>
-                <MaterialCommunityIcons name="microphone" size={20} color="#475569" />
+              <View style={styles.activePickupCard}>
+                <Text style={styles.activePickupTitle}>Addional active pickups</Text>
+                <Text style={styles.activePickupValue}>{deliveryCount}/3</Text>
               </View>
 
-              <View style={styles.driverStatusCard}>
-                <Text style={styles.driverStatusTitle}>Driver mode</Text>
-                <Text style={styles.driverStatusText}>
-                  A mock package is waiting just north-east of your current location.
-                </Text>
-              </View>
+              {selectedPackage ? (
+                <View style={styles.packageDetailCard}>
+                  <View style={styles.packageDetailHeader}>
+                    <Text style={styles.packageDetailTitle}>{selectedPackage.title}</Text>
+                    <Pressable onPress={() => setSelectedPackageId(null)} hitSlop={10}>
+                      <MaterialCommunityIcons name="close" size={20} color="#64748b" />
+                    </Pressable>
+                  </View>
+                  <Text style={styles.packageDetailText}>{selectedPackage.description}</Text>
+                  <Text style={styles.packageDetailMeta}>Location: {selectedPackage.locationLabel}</Text>
+                  <Text style={styles.packageDetailPoints}>
+                    Sustainable reward: +{selectedPackage.rewardPoints} pts
+                  </Text>
+                  {selectedPackageStatus === "available" && canPickupMorePackages ? (
+                    <Pressable style={styles.packagePickupButton} onPress={handlePickupPackage}>
+                      <Text style={styles.packagePickupButtonText}>Pickup</Text>
+                    </Pressable>
+                  ) : selectedPackageStatus === "taken" ? (
+                    <View style={styles.packageTakenBadge}>
+                      <Text style={styles.packageTakenBadgeText}>Picked up by another driver</Text>
+                    </View>
+                  ) : selectedPackageStatus === "available" ? (
+                    <View style={styles.packageLimitBadge}>
+                      <Text style={styles.packageLimitBadgeText}>Pickup limit reached</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.packageDeliveryBadge}>
+                      <Text style={styles.packageDeliveryBadgeText}>In delivery</Text>
+                    </View>
+                  )}
+                </View>
+              ) : null}
             </View>
           )}
         </View>
@@ -824,6 +960,71 @@ const styles = StyleSheet.create({
   },
   appHeaderTitles: {
     flex: 1,
+  },
+  appHeaderActions: {
+    alignItems: "flex-end",
+  },
+  notificationBell: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#e8f7ef",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#ef4444",
+  },
+  driverNoticeOverlay: {
+    flex: 1,
+    backgroundColor: "transparent",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 60,
+    paddingRight: 20,
+    paddingLeft: 20,
+  },
+  driverNoticeModal: {
+    width: 240,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  driverNoticeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  driverNoticeTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  driverNoticeCount: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: "#0f5c45",
+    marginBottom: 4,
+  },
+  driverNoticeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#475569",
   },
   logoutButton: {
     paddingVertical: 6,
@@ -1825,30 +2026,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f7f2",
     position: "relative",
   },
-  mapSearchBar: {
-    position: "absolute",
-    top: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
+  driverMarkerWrap: {
     alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#0b3d2e",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
-  },
-  mapSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#475569",
-    marginLeft: 12,
   },
   driverMarker: {
     width: 42,
@@ -1860,41 +2039,173 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#ffffff",
   },
+  driverMarkerTail: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#0f5c45",
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: "#ffffff",
+    transform: [{ rotate: "45deg" }],
+    marginTop: -7,
+  },
+  packageMarkerWrap: {
+    alignItems: "center",
+  },
   packageMarker: {
     width: 42,
     height: 42,
-    borderRadius: 14,
-    backgroundColor: "#f59e0b",
+    borderRadius: 21,
+    backgroundColor: "#60a5fa",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "#ffffff",
   },
-  driverStatusCard: {
+  packageMarkerDelivery: {
+    backgroundColor: "#f59e0b",
+  },
+  packageMarkerTaken: {
+    backgroundColor: "#ef4444",
+  },
+  packageMarkerTail: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#60a5fa",
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: "#ffffff",
+    transform: [{ rotate: "45deg" }],
+    marginTop: -7,
+  },
+  packageMarkerTailDelivery: {
+    backgroundColor: "#f59e0b",
+  },
+  packageMarkerTailTaken: {
+    backgroundColor: "#ef4444",
+  },
+  activePickupCard: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  activePickupTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  activePickupValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0f5c45",
+  },
+  packageDetailCard: {
     position: "absolute",
     left: 20,
     right: 20,
     bottom: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.97)",
+    borderRadius: 24,
     paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingVertical: 18,
     shadowColor: "#0b3d2e",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
     elevation: 4,
   },
-  driverStatusTitle: {
-    fontSize: 16,
+  packageDetailHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  packageDetailTitle: {
+    flex: 1,
+    fontSize: 18,
     fontWeight: "800",
     color: "#0f172a",
-    marginBottom: 4,
   },
-  driverStatusText: {
+  packageDetailText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
     color: "#475569",
+    marginBottom: 10,
+  },
+  packageDetailMeta: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#334155",
+    marginBottom: 8,
+  },
+  packageDetailPoints: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0f5c45",
+  },
+  packagePickupButton: {
+    marginTop: 14,
+    backgroundColor: "#0f5c45",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  packagePickupButtonText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#ffffff",
+  },
+  packageDeliveryBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#dcfce7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  packageDeliveryBadgeText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f5c45",
+  },
+  packageTakenBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#fee2e2",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  packageTakenBadgeText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#b91c1c",
+  },
+  packageLimitBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#fee2e2",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  packageLimitBadgeText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#b91c1c",
   },
   profileLogoutButton: {
     backgroundColor: "#c2410c",
