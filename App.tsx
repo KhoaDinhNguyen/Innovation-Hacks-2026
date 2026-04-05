@@ -6,7 +6,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline } from "react-native-maps";
 
-type TabKey = "dashboard" | "map" | "reward" | "history" | "profile";
+type TabKey = "dashboard" | "map" | "reward" | "history" | "profile" | "tracking";
 
 const rewardProgress = {
   current: 360,
@@ -200,6 +200,52 @@ const sustainabilityStats = [
   },
 ] as const;
 
+const honorTiers = [
+  {
+    id: "gaia-vanguard",
+    title: 'The "Gaia Vanguard"',
+    pointsRequired: 500,
+    benefits: [
+      "30% discount on eco-products",
+      "VIP customer support 24/7",
+      "Gold eco-badge on profile",
+      "Exclusive event invitations",
+      "Free yearly carbon offset",
+      "Personal sustainability advisor",
+      "Featured in hall of fame",
+    ],
+    accentColor: "#a855f7",
+    icon: "shield-outline",
+  },
+  {
+    id: "kinetic-strategist",
+    title: 'The "Kinetic Strategist"',
+    pointsRequired: 300,
+    benefits: [
+      "15% discount on eco-products",
+      "Priority customer support",
+      "Silver eco-badge on profile",
+      "Early access to new features",
+      "Free carbon offset report",
+    ],
+    accentColor: "#3b82f6",
+    icon: "lightning-bolt-outline",
+  },
+  {
+    id: "eco-explorer",
+    title: 'The "Eco-Explorer"',
+    pointsRequired: 150,
+    benefits: [
+      "5% discount on eco-products",
+      "Monthly sustainability newsletter",
+      "Basic eco-badge on profile",
+      "Access to community forum",
+    ],
+    accentColor: "#22c55e",
+    icon: "compass-outline",
+  },
+] as const;
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -208,6 +254,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const progressPercentage = (rewardProgress.current / rewardProgress.goal) * 100;
   const progressWidth = `${progressPercentage}%` as const;
+  const currentHonor =
+    rewardProgress.current >= 500
+      ? 'The "Gaia Vanguard"'
+      : rewardProgress.current >= 300
+        ? 'The "Kinetic Strategist"'
+        : 'The "Eco-Explorer"';
 
   const handleLogin = () => {
     const email = loginEmail.trim();
@@ -305,19 +357,19 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
 
-      {activeTab !== "map" && (
-        <View style={styles.appHeader}>
-          <View style={styles.appHeaderRow}>
-            <View style={styles.appHeaderTitles}>
-              <Text style={styles.appTitle}>Ecoride</Text>
-              <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+        {activeTab !== "map" && (
+          <View style={styles.appHeader}>
+            <View style={styles.appHeaderRow}>
+              <View style={styles.appHeaderTitles}>
+                <Text style={styles.appTitle}>Ecoride</Text>
+                <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
+              </View>
+              <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
+                <Text style={styles.logoutButtonText}>Log out</Text>
+              </Pressable>
             </View>
-            <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
-              <Text style={styles.logoutButtonText}>Log out</Text>
-            </Pressable>
           </View>
-        </View>
-      )}
+        )}
 
         <View style={styles.content}>
           {activeTab === "dashboard" ? (
@@ -333,14 +385,15 @@ export default function App() {
               <View style={styles.card}>
                 <View style={styles.cardTitleRow}>
                   <Text style={styles.cardTitle}>Points and rewards</Text>
-                  <Pressable style={styles.rewardsLinkInline} onPress={() => setActiveTab("reward")}>
-                    <Text style={styles.rewardsLinkText}>Go to Reward</Text>
+                  <Pressable style={styles.rewardsLinkInline} onPress={() => setActiveTab("tracking")}>
+                    <Text style={styles.rewardsLinkText}>Go to Milestone</Text>
                   </Pressable>
                 </View>
-                <View style={styles.pointsRow}>
-                  <Text style={styles.pointsValue}>{rewardProgress.current} pts</Text>
-                  <Text style={styles.pointsGoal}>Goal: {rewardProgress.goal} pts</Text>
+                <View style={styles.trackingPointsRow}>
+                  <Text style={styles.trackingPointsValue}>{rewardProgress.current} pts</Text>
+                  <Text style={styles.trackingPointsGoal}>Next milestone: {rewardProgress.goal} pts</Text>
                 </View>
+                <Text style={styles.trackingCurrentRank}>{currentHonor}</Text>
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: progressWidth }]} />
                 </View>
@@ -395,6 +448,57 @@ export default function App() {
                   </View>
                 ))}
               </View>
+            </ScrollView>
+          ) : activeTab === "tracking" ? (
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.trackingHeroCard}>
+                <Text style={styles.heroEyebrow}>Tracking</Text>
+                <Text style={styles.heroTitle}>Honor progress</Text>
+                <Text style={styles.heroText}>
+                  Track your current points and see what each honor tier unlocks next.
+                </Text>
+              </View>
+
+              <View style={styles.trackingSectionHeader}>
+                <Text style={styles.trackingSectionTitle}>Honor titles</Text>
+              </View>
+
+              {honorTiers.map((tier) => (
+                <View
+                  key={tier.id}
+                  style={[
+                    styles.card,
+                    tier.title === currentHonor ? styles.activeHonorCard : null,
+                    rewardProgress.current < tier.pointsRequired ? styles.lockedHonorCard : null,
+                  ]}>
+                  <View style={styles.honorCard}>
+                    <View style={styles.honorTopRow}>
+                      <View style={[styles.honorIconWrap, { backgroundColor: `${tier.accentColor}20` }]}>
+                        <MaterialCommunityIcons name={tier.icon} size={26} color={tier.accentColor} />
+                      </View>
+                      {tier.title === currentHonor ? (
+                        <Text style={styles.honorCurrentLabel}>Current</Text>
+                      ) : rewardProgress.current < tier.pointsRequired ? (
+                        <Text style={styles.honorLockLabel}>Locked</Text>
+                      ) : (
+                        <View />
+                      )}
+                    </View>
+
+                    <Text style={styles.honorTitle}>{tier.title}</Text>
+                    <Text style={styles.honorPoints}>{tier.pointsRequired} pts</Text>
+
+                    <View style={styles.honorBenefitsBlock}>
+                      {tier.benefits.map((benefit) => (
+                        <View key={benefit} style={styles.honorBenefitRow}>
+                          <MaterialCommunityIcons name="check" size={16} color="#0f5c45" />
+                          <Text style={styles.honorBenefit}>{benefit}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              ))}
             </ScrollView>
           ) : activeTab === "history" ? (
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -842,6 +946,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
   },
+  trackingHeroCard: {
+    backgroundColor: "#0f5c45",
+    borderRadius: 24,
+    padding: 20,
+  },
   profileHeroCard: {
     backgroundColor: "#0f5c45",
     borderRadius: 24,
@@ -1112,6 +1221,32 @@ const styles = StyleSheet.create({
   pointsGoal: {
     fontSize: 14,
     color: "#658277",
+  },
+  trackingPointsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 12,
+  },
+  trackingPointsValue: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#0f5c45",
+  },
+  trackingPointsGoal: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+  trackingPointsCard: {
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  trackingCurrentRank: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#15803d",
+    marginBottom: 12,
   },
   rewardsLinkInline: {
     flexDirection: "row",
@@ -1478,6 +1613,85 @@ const styles = StyleSheet.create({
   },
   rewardList: {
     gap: 0,
+  },
+  trackingSectionHeader: {
+    paddingTop: 4,
+  },
+  trackingSectionTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  activeHonorCard: {
+    borderWidth: 2,
+    borderColor: "#0f5c45",
+    backgroundColor: "#fffbea",
+  },
+  lockedHonorCard: {
+    backgroundColor: "#f8fafc",
+    opacity: 0.58,
+  },
+  honorCard: {
+    gap: 14,
+  },
+  honorTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  honorIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  honorCurrentLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#fff",
+    backgroundColor: "#2b9348",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: -4,
+    marginRight: -4,
+  },
+  honorLockLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#64748b",
+    backgroundColor: "#e5e7eb",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: -4,
+    marginRight: -4,
+  },
+  honorTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  honorPoints: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  honorBenefitsBlock: {
+    gap: 4,
+  },
+  honorBenefit: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#475569",
+  },
+  honorBenefitRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 4,
   },
   historyPoints: {
     fontSize: 15,
