@@ -15,45 +15,41 @@ The frontend is intentionally kept simple:
 
 ```mermaid
 flowchart TD
-    A[Frontend trigger] --> B[Collect active drivers and in-transit cargo]
-    B --> C{At least 2 drivers in to_dropoff state?}
+    A[Frontend trigger] --> B[Get active drivers and in-transit cargo]
+    B --> C{At least 2 eligible drivers?}
     C -- No --> Z[Return no overlap]
-    C -- Yes --> D[Enumerate driver pairs]
-    D --> E[Enumerate candidate meet points]
-    E --> F[Check basic feasibility]
-    F --> F1{Both drivers have active dropoffs?}
-    F1 -- No --> E
-    F1 -- Yes --> F2{Sender has transferable in-transit cargo?}
-    F2 -- No --> E
-    F2 -- Yes --> F3{Receiver has enough capacity?}
-    F3 -- No --> E
-    F3 -- Yes --> G[Estimate route metrics]
-    G --> G1{Can both reach meet point within route limit?}
-    G1 -- No --> E
-    G1 -- Yes --> G2{Arrival times close enough?}
-    G2 -- No --> E
-    G2 -- Yes --> H[Measure destination overlap]
-    H --> H1{Destinations close enough?}
-    H1 -- No --> E
-    H1 -- Yes --> I[Compute baseline distance]
-    I --> J[Compute transfer-route distance]
-    J --> K[Apply transfer and lateness penalties]
-    K --> L[Compute savings]
-    L --> L1{Savings > threshold?}
-    L1 -- No --> E
-    L1 -- Yes --> M[Store candidate plan]
-    M --> N{More meet points or pairs?}
-    N -- Yes --> E
-    N -- No --> O{Any valid candidate?}
-    O -- No --> Z
-    O -- Yes --> P[Select best candidate by max savings]
-    P --> Q[Return transfer suggestion to frontend]
-    Q --> R{User accepts?}
-    R -- No --> S[Mark dismissed and continue simulation]
-    R -- Yes --> T[Reassign cargo]
-    T --> U[Reorder remaining deliveries]
-    U --> V[Reroute affected drivers]
-    V --> W[Update savings metrics and continue simulation]
+    C -- Yes --> D[Generate driver pairs and candidate meet points]
+
+    D --> E[Validate transfer feasibility]
+    E --> E1{Valid transfer?}
+    E1 -- No --> D
+    E1 -- Yes --> F[Estimate route and timing]
+
+    F --> F1{Within route and time limits?}
+    F1 -- No --> D
+    F1 -- Yes --> G[Check destination overlap]
+
+    G --> G1{Destinations close enough?}
+    G1 -- No --> D
+    G1 -- Yes --> H[Compute savings and penalties]
+
+    H --> H1{Savings above threshold?}
+    H1 -- No --> D
+    H1 -- Yes --> I[Store candidate plan]
+
+    I --> J{More candidates?}
+    J -- Yes --> D
+    J -- No --> K{Any valid candidate found?}
+
+    K -- No --> Z
+    K -- Yes --> L[Select best candidate]
+    L --> M[Return suggestion to frontend]
+
+    M --> N{User accepts?}
+    N -- No --> O[Dismiss and continue simulation]
+    N -- Yes --> P[Apply transfer]
+    P --> Q[Reassign cargo and reorder deliveries]
+    Q --> R[Reroute drivers and update metrics]
 ```
 
 ## Frontend Trigger
