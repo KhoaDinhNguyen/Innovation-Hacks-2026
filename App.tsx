@@ -264,7 +264,21 @@ export default function App() {
 
             <View style={styles.loginCard}>
               <Text style={styles.loginCardTitle}>Sign in</Text>
-              <Text style={styles.loginCardHint}>Use any email and a password of 4+ characters for this demo.</Text>
+              <View style={styles.loginInfoBlock}>
+                <Text style={styles.loginDisclaimer}>
+                  Mock login for our hackathon MVP only. This is not a real or secure sign-in: there is no backend
+                  authentication, credentials are not stored, and nothing is encrypted like production auth.
+                </Text>
+                <Text style={styles.loginRules}>
+                  <Text style={styles.loginRulesLabel}>Allowed: </Text>
+                  any email that contains @ and any password with 4 or more characters (example: you@demo.com /
+                  pass1234).
+                </Text>
+                <Text style={styles.loginRules}>
+                  <Text style={styles.loginRulesLabel}>Not allowed: </Text>
+                  empty email or password, an email with no @, or a password shorter than 4 characters.
+                </Text>
+              </View>
 
               <Text style={styles.loginLabel}>Email</Text>
               <TextInput
@@ -787,11 +801,23 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     marginBottom: 8,
   },
-  loginCardHint: {
+  loginInfoBlock: {
+    marginBottom: 20,
+    gap: 10,
+  },
+  loginDisclaimer: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#64748b",
+  },
+  loginRules: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#64748b",
-    marginBottom: 20,
+    color: "#475569",
+  },
+  loginRulesLabel: {
+    fontWeight: "800",
+    color: "#334155",
   },
   loginLabel: {
     fontSize: 13,
