@@ -594,6 +594,12 @@ export default function App() {
 
   const clock = useSimulationClock(onSimTick);
 
+  useEffect(() => {
+    if (activeConflict && clock.isRunning) {
+      clock.pause();
+    }
+  }, [activeConflict, clock]);
+
   const initSimulation = useCallback(() => {
     if (simInitializedRef.current) return;
     simInitializedRef.current = true;
@@ -1893,7 +1899,7 @@ export default function App() {
                 <Pressable style={styles.simBtn} onPress={clock.toggle}>
                   <MaterialCommunityIcons name={clock.isRunning ? "pause" : "play"} size={22} color="#ffffff" />
                 </Pressable>
-                {([1, 2, 5] as SimSpeed[]).map((s) => (
+                {([1, 5, 10] as SimSpeed[]).map((s) => (
                   <Pressable
                     key={s}
                     style={[styles.simSpeedBtn, clock.speed === s ? styles.simSpeedBtnActive : null]}

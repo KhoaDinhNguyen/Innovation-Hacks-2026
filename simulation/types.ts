@@ -80,7 +80,7 @@ export type Conflict = {
   status: ConflictStatus;
 };
 
-export type SimSpeed = 1 | 2 | 5;
+export type SimSpeed = 1 | 5 | 10;
 
 export type SimulationState = {
   packages: SimPackage[];
