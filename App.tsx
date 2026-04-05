@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   FlatList,
@@ -109,6 +109,10 @@ export default function App() {
   const simInitializedRef = useRef(false);
   const pendingRouteRequests = useRef(new Set<string>());
   const markerJustPressed = useRef(false);
+  const plannerBusyRef = useRef(false);
+  const plannerLastRunRef = useRef(0);
+  const conflictsRef = useRef<Conflict[]>([]);
+  const activeConflictRef = useRef<Conflict | null>(null);
 
   // Map interaction state
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
@@ -139,12 +143,59 @@ export default function App() {
   const canPickupMore = userPackageCount < MAX_PACKAGES_PER_DRIVER;
   const selectedPackage = simPackages.find((p) => p.id === selectedPackageId) ?? null;
   const waitingCount = simPackages.filter((p) => p.status === "waiting").length;
+  const activeConflictReceiver = activeConflict ? simDrivers.find((d) => d.id === activeConflict.driverAId) ?? null : null;
+  const activeConflictSender = activeConflict ? simDrivers.find((d) => d.id === activeConflict.driverBId) ?? null : null;
+  const activeConflictTransferPkg = activeConflict ? simPackages.find((p) => p.id === activeConflict.transferPackageIds[0]) ?? null : null;
+  const activeConflictReceiverPkg = activeConflict && activeConflictReceiver?.targetDropoffId
+    ? simPackages.find((p) => p.id === activeConflictReceiver.targetDropoffId) ?? null
+    : null;
 
   const progressPercentage = (currentPoints / rewardProgress.goal) * 100;
   const progressWidth = `${Math.min(progressPercentage, 100)}%` as const;
   const currentHonor = currentPoints >= 500 ? 'The "Gaia Vanguard"' : currentPoints >= 300 ? 'The "Kinetic Strategist"' : 'The "Eco-Explorer"';
 
   const allPointHistory = [...deliveryLog, ...staticPointHistory];
+
+  useEffect(() => {
+    conflictsRef.current = conflicts;
+  }, [conflicts]);
+
+  useEffect(() => {
+    activeConflictRef.current = activeConflict;
+  }, [activeConflict]);
+
+  const requestDriverRoute = useCallback((driverId: string, from: LatLng, to: LatLng) => {
+    const reqKey = `${driverId}-dropoff`;
+    if (pendingRouteRequests.current.has(reqKey)) return;
+
+    pendingRouteRequests.current.add(reqKey);
+    fetchRoute(from, to)
+      .then((route) => {
+        setSimDrivers((cur) => applyRouteToDriver(cur, driverId, route.waypoints, route.distanceKm, route.durationSec));
+      })
+      .finally(() => {
+        pendingRouteRequests.current.delete(reqKey);
+      });
+  }, []);
+
+  const queueTransferPlanning = useCallback((drivers: SimDriver[], packages: SimPackage[], totalMs: number) => {
+    if (plannerBusyRef.current || activeConflictRef.current) return;
+    if (totalMs - plannerLastRunRef.current < 3000) return;
+
+    plannerBusyRef.current = true;
+    plannerLastRunRef.current = totalMs;
+
+    detectConflicts(drivers, packages, conflictsRef.current)
+      .then((newConflicts) => {
+        if (newConflicts.length === 0 || activeConflictRef.current) return;
+
+        setConflicts((prev) => [...prev, ...newConflicts]);
+        setActiveConflict((current) => current ?? newConflicts[0]);
+      })
+      .finally(() => {
+        plannerBusyRef.current = false;
+      });
+  }, []);
 
   const onSimTick = useCallback((deltaMs: number, totalMs: number) => {
     setSimPackages((prev) => {
@@ -267,20 +318,15 @@ export default function App() {
           ]);
         }
 
-        const newConflicts = detectConflicts(updatedDrivers, pkgs, []);
-        if (newConflicts.length > 0) {
-          setConflicts((prev) => [...prev, ...newConflicts]);
-          setActiveConflict((current) => current ?? newConflicts[0]);
-        }
-
         setSimDrivers(updatedDrivers);
+        queueTransferPlanning(updatedDrivers, pkgs, totalMs);
         return pkgs;
       });
       return prevDrivers;
     });
 
     setPointsPopups((prev) => prev.filter((p) => Date.now() - p.createdAt < POINTS_POPUP_DURATION_MS));
-  }, []);
+  }, [queueTransferPlanning]);
 
   const clock = useSimulationClock(onSimTick);
 
@@ -300,6 +346,10 @@ export default function App() {
     setDeliveryLog([]);
     setPointsPopups([]);
     lastSpawnRef.current = 0;
+    plannerBusyRef.current = false;
+    plannerLastRunRef.current = 0;
+    conflictsRef.current = [];
+    activeConflictRef.current = null;
   }, []);
 
   const resetSimulation = useCallback(() => {
@@ -324,6 +374,10 @@ export default function App() {
     setShowOptimalOrderModal(false);
     setShowDeliveryConfirm(false);
     lastSpawnRef.current = 0;
+    plannerBusyRef.current = false;
+    plannerLastRunRef.current = 0;
+    conflictsRef.current = [];
+    activeConflictRef.current = null;
     simInitializedRef.current = true;
   }, [clock]);
 
@@ -471,11 +525,26 @@ export default function App() {
 
   const handleConflictAction = (accept: boolean) => {
     if (!activeConflict) return;
-    const result = resolveConflict(activeConflict, accept, simDrivers, simPackages);
+    const conflict = activeConflict;
+    const result = resolveConflict(conflict, accept, simDrivers, simPackages);
     setSimDrivers(result.drivers);
     setSimPackages(result.packages);
-    setConflicts((prev) => prev.map((c) => (c.id === activeConflict.id ? result.conflict : c)));
-    if (accept) setTotalCO2Saved((c) => c + activeConflict.potentialCO2Saving);
+    setConflicts((prev) => prev.map((c) => (c.id === conflict.id ? result.conflict : c)));
+
+    if (accept) {
+      setTotalCO2Saved((c) => c + conflict.potentialCO2Saving);
+
+      for (const driverId of [conflict.driverAId, conflict.driverBId]) {
+        const driver = result.drivers.find((candidate) => candidate.id === driverId);
+        if (!driver?.targetDropoffId || driver.state !== "to_dropoff") continue;
+
+        const targetPkg = result.packages.find((pkg) => pkg.id === driver.targetDropoffId);
+        if (!targetPkg) continue;
+
+        requestDriverRoute(driver.id, driver.coordinate, targetPkg.dropoffCoordinate);
+      }
+    }
+
     setActiveConflict(null);
   };
 
@@ -571,7 +640,7 @@ export default function App() {
                 <>
                   <Text style={styles.conflictText}>
                     {simDrivers.find((d) => d.id === activeConflict.driverAId)?.name ?? "Driver A"} and{" "}
-                    {simDrivers.find((d) => d.id === activeConflict.driverBId)?.name ?? "Driver B"} are both heading to the same area.
+                    {simDrivers.find((d) => d.id === activeConflict.driverBId)?.name ?? "Driver B"} can consolidate nearby deliveries.
                   </Text>
                   <View style={styles.conflictSavingsRow}>
                     <View style={styles.conflictSavingBox}>
@@ -583,7 +652,11 @@ export default function App() {
                       <Text style={styles.conflictSavingLabel}>CO2 saved</Text>
                     </View>
                   </View>
-                  <Text style={styles.conflictSuggestion}>Transfer packages at the midpoint to reduce redundant driving.</Text>
+                  <Text style={styles.conflictSuggestion}>
+                    Transfer {activeConflict.transferPackageIds.length} package at {activeConflict.meetPointLabel}. Baseline distance drops from{" "}
+                    {activeConflict.directDistanceKm.toFixed(1)} km to {activeConflict.optimizedDistanceKm.toFixed(1)} km, and the meet ETAs are only{" "}
+                    {Math.round(activeConflict.arrivalWindowSec / 60)} min apart.
+                  </Text>
                   <View style={styles.conflictActions}>
                     <Pressable style={styles.conflictAcceptBtn} onPress={() => handleConflictAction(true)}>
                       <Text style={styles.conflictAcceptText}>Accept Transfer</Text>
@@ -953,6 +1026,89 @@ export default function App() {
                   </Marker>
                 ))}
 
+                {activeConflict && (
+                  <>
+                    {activeConflictReceiver && activeConflictReceiverPkg && (
+                      <Polyline
+                        coordinates={[activeConflictReceiver.coordinate, activeConflictReceiverPkg.dropoffCoordinate]}
+                        strokeColor="rgba(100, 116, 139, 0.65)"
+                        strokeWidth={7}
+                        lineDashPattern={[1, 10]}
+                      />
+                    )}
+                    {activeConflictSender && activeConflictTransferPkg && (
+                      <Polyline
+                        coordinates={[activeConflictSender.coordinate, activeConflictTransferPkg.dropoffCoordinate]}
+                        strokeColor="rgba(148, 163, 184, 0.65)"
+                        strokeWidth={7}
+                        lineDashPattern={[1, 10]}
+                      />
+                    )}
+                    <Polyline
+                      coordinates={[
+                        simDrivers.find((driver) => driver.id === activeConflict.driverAId)?.coordinate ?? activeConflict.suggestedTransferPoint,
+                        activeConflict.suggestedTransferPoint,
+                      ]}
+                      strokeColor="#1d4ed8"
+                      strokeWidth={5}
+                      lineDashPattern={[10, 6]}
+                    />
+                    <Polyline
+                      coordinates={[
+                        simDrivers.find((driver) => driver.id === activeConflict.driverBId)?.coordinate ?? activeConflict.suggestedTransferPoint,
+                        activeConflict.suggestedTransferPoint,
+                      ]}
+                      strokeColor="#ea580c"
+                      strokeWidth={5}
+                      lineDashPattern={[10, 6]}
+                    />
+                    {activeConflictTransferPkg && (
+                      <Polyline
+                        coordinates={[activeConflict.suggestedTransferPoint, activeConflictTransferPkg.dropoffCoordinate]}
+                        strokeColor="#16a34a"
+                        strokeWidth={5}
+                      />
+                    )}
+                    {activeConflictReceiverPkg && (
+                      <Polyline
+                        coordinates={[activeConflict.suggestedTransferPoint, activeConflictReceiverPkg.dropoffCoordinate]}
+                        strokeColor="#22c55e"
+                        strokeWidth={5}
+                      />
+                    )}
+                    <Marker coordinate={activeConflict.suggestedTransferPoint} anchor={{ x: 0.5, y: 0.5 }}>
+                      <View style={styles.meetPointMarkerWrap}>
+                        <View style={styles.meetPointHaloOuter} />
+                        <View style={styles.meetPointHaloInner} />
+                        <View style={styles.meetPointMarker}>
+                          <MaterialCommunityIcons name="swap-horizontal-bold" size={18} color="#ffffff" />
+                        </View>
+                        <Text style={styles.meetPointLabel}>{activeConflict.meetPointLabel}</Text>
+                      </View>
+                    </Marker>
+                    {activeConflictTransferPkg && (
+                      <Marker coordinate={activeConflictTransferPkg.dropoffCoordinate} anchor={{ x: 0.5, y: 1 }}>
+                        <View style={styles.planDestinationWrap}>
+                          <View style={[styles.planDestinationBadge, styles.planDestinationBadgeTransfer]}>
+                            <MaterialCommunityIcons name="package-variant" size={15} color="#ffffff" />
+                          </View>
+                          <Text style={styles.planDestinationLabel}>Transfer cargo</Text>
+                        </View>
+                      </Marker>
+                    )}
+                    {activeConflictReceiverPkg && (
+                      <Marker coordinate={activeConflictReceiverPkg.dropoffCoordinate} anchor={{ x: 0.5, y: 1 }}>
+                        <View style={styles.planDestinationWrap}>
+                          <View style={[styles.planDestinationBadge, styles.planDestinationBadgeKeep]}>
+                            <MaterialCommunityIcons name="flag-checkered" size={15} color="#ffffff" />
+                          </View>
+                          <Text style={styles.planDestinationLabel}>Keep route</Text>
+                        </View>
+                      </Marker>
+                    )}
+                  </>
+                )}
+
                 {/* Package markers (only non-delivered) */}
                 {simPackages.filter((p) => p.status !== "delivered").map((pkg) => (
                   <Marker key={pkg.id} coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate} onPress={() => { markerJustPressed.current = true; setSelectedPackageId(pkg.id); setSelectedDriverId(null); }}>
@@ -1042,6 +1198,52 @@ export default function App() {
                 <MaterialCommunityIcons name="clipboard-list-outline" size={20} color="#0f5c45" />
                 <Text style={styles.packageListBtnText}>My Packages</Text>
               </Pressable>
+
+              {activeConflict && (
+                <View style={styles.transferStoryCard}>
+                  <View style={styles.transferStoryHeader}>
+                    <View style={styles.transferStoryBadge}>
+                      <MaterialCommunityIcons name="swap-horizontal-bold" size={16} color="#ffffff" />
+                    </View>
+                    <View style={styles.transferStoryCopy}>
+                      <Text style={styles.transferStoryEyebrow}>Live transfer plan</Text>
+                      <Text style={styles.transferStoryTitle}>
+                        {activeConflictTransferPkg?.label ?? "Cargo"} handoff at {activeConflict.meetPointLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.transferStoryMetrics}>
+                    <View style={styles.transferStoryMetric}>
+                      <Text style={styles.transferStoryMetricLabel}>Before</Text>
+                      <Text style={styles.transferStoryMetricValue}>{activeConflict.directDistanceKm.toFixed(1)} km</Text>
+                    </View>
+                    <View style={styles.transferStoryMetric}>
+                      <Text style={styles.transferStoryMetricLabel}>After</Text>
+                      <Text style={styles.transferStoryMetricValue}>{activeConflict.optimizedDistanceKm.toFixed(1)} km</Text>
+                    </View>
+                    <View style={styles.transferStoryMetric}>
+                      <Text style={styles.transferStoryMetricLabel}>Saved</Text>
+                      <Text style={[styles.transferStoryMetricValue, styles.transferStoryMetricValuePositive]}>
+                        {activeConflict.potentialSavingKm.toFixed(1)} km
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.transferLegendRow}>
+                    <View style={styles.transferLegendItem}>
+                      <View style={styles.transferLegendLineBefore} />
+                      <Text style={styles.transferLegendText}>Before</Text>
+                    </View>
+                    <View style={styles.transferLegendItem}>
+                      <View style={styles.transferLegendLineToMeet} />
+                      <Text style={styles.transferLegendText}>To meet point</Text>
+                    </View>
+                    <View style={styles.transferLegendItem}>
+                      <View style={styles.transferLegendLineAfter} />
+                      <Text style={styles.transferLegendText}>Optimized</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
 
               {/* Simulation controls */}
               <View style={styles.simControlBar}>
@@ -1339,11 +1541,38 @@ const styles = StyleSheet.create({
   dropoffMarkerWrap: { alignItems: "center" },
   dropoffMarker: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#ffffff" },
   dropoffMarkerTail: { width: 10, height: 10, backgroundColor: "#22c55e", borderBottomWidth: 3, borderRightWidth: 3, borderColor: "#ffffff", transform: [{ rotate: "45deg" }], marginTop: -6 },
+  meetPointMarkerWrap: { alignItems: "center", gap: 6 },
+  meetPointHaloOuter: { position: "absolute", width: 78, height: 78, borderRadius: 39, backgroundColor: "rgba(34, 197, 94, 0.18)" },
+  meetPointHaloInner: { position: "absolute", width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(59, 130, 246, 0.24)" },
+  meetPointMarker: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#ffffff" },
+  meetPointLabel: { backgroundColor: "rgba(15, 23, 42, 0.86)", color: "#ffffff", fontSize: 11, fontWeight: "800", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: "hidden" },
+  planDestinationWrap: { alignItems: "center", gap: 6 },
+  planDestinationBadge: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#ffffff" },
+  planDestinationBadgeTransfer: { backgroundColor: "#ea580c" },
+  planDestinationBadgeKeep: { backgroundColor: "#16a34a" },
+  planDestinationLabel: { backgroundColor: "rgba(255,255,255,0.96)", color: "#0f172a", fontSize: 11, fontWeight: "800", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, overflow: "hidden" },
   activePickupCard: { position: "absolute", top: 20, left: 20, backgroundColor: "rgba(255, 255, 255, 0.96)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   activePickupTitle: { fontSize: 12, fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   activePickupValue: { fontSize: 22, fontWeight: "800", color: "#0f5c45" },
   packageListBtn: { position: "absolute", top: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.96)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   packageListBtnText: { fontSize: 13, fontWeight: "700", color: "#0f5c45" },
+  transferStoryCard: { position: "absolute", top: 96, left: 20, right: 20, backgroundColor: "rgba(255,255,255,0.98)", borderRadius: 24, padding: 16, borderWidth: 1, borderColor: "#dbeafe", shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 6 },
+  transferStoryHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  transferStoryBadge: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
+  transferStoryCopy: { flex: 1 },
+  transferStoryEyebrow: { fontSize: 12, fontWeight: "800", color: "#2563eb", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+  transferStoryTitle: { fontSize: 16, fontWeight: "800", color: "#0f172a", lineHeight: 22 },
+  transferStoryMetrics: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  transferStoryMetric: { flex: 1, backgroundColor: "#f8fafc", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10 },
+  transferStoryMetricLabel: { fontSize: 12, fontWeight: "700", color: "#64748b", marginBottom: 4 },
+  transferStoryMetricValue: { fontSize: 19, fontWeight: "800", color: "#0f172a" },
+  transferStoryMetricValuePositive: { color: "#16a34a" },
+  transferLegendRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
+  transferLegendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  transferLegendLineBefore: { width: 24, height: 0, borderTopWidth: 4, borderColor: "rgba(148, 163, 184, 0.9)", borderStyle: "dashed" },
+  transferLegendLineToMeet: { width: 24, height: 0, borderTopWidth: 4, borderColor: "#1d4ed8", borderStyle: "dashed" },
+  transferLegendLineAfter: { width: 24, height: 0, borderTopWidth: 4, borderColor: "#16a34a" },
+  transferLegendText: { fontSize: 12, fontWeight: "700", color: "#475569" },
   packageDetailCard: { position: "absolute", left: 20, right: 20, bottom: 80, backgroundColor: "rgba(255, 255, 255, 0.97)", borderRadius: 24, paddingHorizontal: 18, paddingVertical: 18, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 4 },
   packageDetailHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 },
   packageDetailTitle: { flex: 1, fontSize: 18, fontWeight: "800", color: "#0f172a" },

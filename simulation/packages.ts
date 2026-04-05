@@ -2,7 +2,7 @@ import type { LatLng, SimPackage } from "./types";
 import { MAX_PACKAGES_ON_MAP, SPAWN_INTERVAL_MS } from "./types";
 import { randomOffsetLatLng } from "./geo";
 
-const DELIVERY_STATIONS: { coordinate: LatLng; name: string }[] = [
+export const DELIVERY_STATIONS: { coordinate: LatLng; name: string }[] = [
   { coordinate: { latitude: 33.4484, longitude: -112.074 }, name: "Central Delivery Station" },
   { coordinate: { latitude: 33.4510, longitude: -112.076 }, name: "North Hub" },
   { coordinate: { latitude: 33.4460, longitude: -112.071 }, name: "South Depot" },
@@ -36,6 +36,10 @@ export function createPackage(mapCenter: LatLng, simTime: number): SimPackage {
   const station = DELIVERY_STATIONS[Math.floor(Math.random() * DELIVERY_STATIONS.length)];
   const dropoff = randomOffsetLatLng(mapCenter, 1.2);
   const points = Math.floor(Math.random() * 20) + 15;
+  const weightKg = Math.floor(Math.random() * 6) + 2;
+  const volumeUnits = Math.floor(Math.random() * 4) + 1;
+  const transferable = Math.random() > 0.2;
+  const latestArrivalTime = simTime + (15 + Math.floor(Math.random() * 10)) * 60_000;
 
   return {
     id: `pkg-${packageCounter}`,
@@ -47,6 +51,10 @@ export function createPackage(mapCenter: LatLng, simTime: number): SimPackage {
     status: "waiting",
     assignedDriverId: null,
     rewardPoints: points,
+    weightKg,
+    volumeUnits,
+    transferable,
+    latestArrivalTime,
     spawnedAt: simTime,
     estimatedPickupTime: null,
     estimatedDropoffTime: null,

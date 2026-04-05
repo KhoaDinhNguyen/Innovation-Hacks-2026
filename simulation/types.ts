@@ -3,6 +3,14 @@ export type LatLng = {
   longitude: number;
 };
 
+export type MeetPoint = {
+  id: string;
+  label: string;
+  coordinate: LatLng;
+  timeWindowStartSec: number;
+  timeWindowEndSec: number;
+};
+
 export type PackageStatus = "waiting" | "assigned" | "in_transit" | "delivered";
 
 export type SimPackage = {
@@ -15,6 +23,10 @@ export type SimPackage = {
   status: PackageStatus;
   assignedDriverId: string | null;
   rewardPoints: number;
+  weightKg: number;
+  volumeUnits: number;
+  transferable: boolean;
+  latestArrivalTime: number;
   spawnedAt: number;
   estimatedPickupTime: number | null;
   estimatedDropoffTime: number | null;
@@ -36,6 +48,8 @@ export type SimDriver = {
   targetDropoffId: string | null;
   state: DriverState;
   speed: number;
+  capacityWeightKg: number;
+  capacityVolumeUnits: number;
   totalDistanceKm: number;
   totalCO2Saved: number;
   color: string;
@@ -55,6 +69,12 @@ export type Conflict = {
   driverBId: string;
   sharedDestinationZone: LatLng;
   suggestedTransferPoint: LatLng;
+  meetPointId: string;
+  meetPointLabel: string;
+  transferPackageIds: string[];
+  directDistanceKm: number;
+  optimizedDistanceKm: number;
+  arrivalWindowSec: number;
   potentialSavingKm: number;
   potentialCO2Saving: number;
   status: ConflictStatus;
