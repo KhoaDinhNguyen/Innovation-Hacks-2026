@@ -32,6 +32,7 @@ import {
   moveAlongPolyline,
   bearing,
   polylineMidpoint,
+  remainingWaypoints,
   fetchRoute,
   computeOptimalOrder,
   clearRouteCache,
@@ -106,6 +107,7 @@ export default function App() {
   const lastSpawnRef = useRef(0);
   const simInitializedRef = useRef(false);
   const pendingRouteRequests = useRef(new Set<string>());
+  const markerJustPressed = useRef(false);
 
   // Map interaction state
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
@@ -889,11 +891,11 @@ export default function App() {
                 style={StyleSheet.absoluteFillObject}
                 showsCompass
                 loadingEnabled
-                onPress={() => { setSelectedPackageId(null); setSelectedDriverId(null); }}
+                onPress={() => { if (markerJustPressed.current) { markerJustPressed.current = false; return; } setSelectedPackageId(null); setSelectedDriverId(null); }}
               >
                 {/* User driver marker */}
                 {userDriver && (
-                  <Marker coordinate={userDriver.coordinate} onPress={() => { setSelectedDriverId("user-driver"); setSelectedPackageId(null); }}>
+                  <Marker coordinate={userDriver.coordinate} onPress={() => { markerJustPressed.current = true; setSelectedDriverId("user-driver"); setSelectedPackageId(null); }}>
                     <View style={styles.driverMarkerWrap}>
                       <View style={[styles.driverMarker, { backgroundColor: userDriver.color }]}>
                         <MaterialCommunityIcons name="car" size={18} color="#ffffff" />
@@ -905,7 +907,7 @@ export default function App() {
 
                 {/* AI driver markers */}
                 {aiDrivers.map((d) => (
-                  <Marker key={d.id} coordinate={d.coordinate} onPress={() => { setSelectedDriverId(d.id); setSelectedPackageId(null); }}>
+                  <Marker key={d.id} coordinate={d.coordinate} onPress={() => { markerJustPressed.current = true; setSelectedDriverId(d.id); setSelectedPackageId(null); }}>
                     <View style={styles.driverMarkerWrap}>
                       <View style={[styles.driverMarker, { backgroundColor: d.color }]}>
                         <MaterialCommunityIcons name="truck-delivery" size={16} color="#ffffff" />
@@ -917,7 +919,7 @@ export default function App() {
 
                 {/* Package markers (only non-delivered) */}
                 {simPackages.filter((p) => p.status !== "delivered").map((pkg) => (
-                  <Marker key={pkg.id} coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate} onPress={() => { setSelectedPackageId(pkg.id); setSelectedDriverId(null); }}>
+                  <Marker key={pkg.id} coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate} onPress={() => { markerJustPressed.current = true; setSelectedPackageId(pkg.id); setSelectedDriverId(null); }}>
                     <View style={styles.packageMarkerWrap}>
                       <View style={[styles.packageMarker, pkg.status === "in_transit" ? styles.packageMarkerDelivery : null, pkg.status === "assigned" ? styles.packageMarkerAssigned : null]}>
                         <MaterialCommunityIcons name={pkg.status === "in_transit" ? "package-down" : "package-variant-closed"} size={18} color="#ffffff" />
@@ -927,22 +929,26 @@ export default function App() {
                   </Marker>
                 ))}
 
-                {/* Road-following polylines: user driver */}
-                {userDriver && userDriver.routeWaypoints.length >= 2 && (userDriver.state === "to_dropoff" || userDriver.state === "to_pickup") && (
-                  <Polyline coordinates={userDriver.routeWaypoints} strokeColor="#0f5c45" strokeWidth={3} lineDashPattern={[8, 6]} />
-                )}
+                {/* Road-following polylines: user driver (remaining route only) */}
+                {userDriver && userDriver.routeWaypoints.length >= 2 && (userDriver.state === "to_dropoff" || userDriver.state === "to_pickup") && (() => {
+                  const ahead = remainingWaypoints(userDriver.routeWaypoints, userDriver.routeProgress);
+                  return ahead.length >= 2 ? <Polyline coordinates={ahead} strokeColor="#0f5c45" strokeWidth={3} lineDashPattern={[8, 6]} /> : null;
+                })()}
 
-                {/* Road-following polylines: AI drivers */}
+                {/* Road-following polylines: AI drivers (remaining route only) */}
                 {aiDrivers.map((d) => {
                   if (d.routeWaypoints.length >= 2 && (d.state === "to_pickup" || d.state === "to_dropoff")) {
-                    return <Polyline key={`line-${d.id}`} coordinates={d.routeWaypoints} strokeColor={d.color} strokeWidth={2} lineDashPattern={[6, 4]} />;
+                    const ahead = remainingWaypoints(d.routeWaypoints, d.routeProgress);
+                    return ahead.length >= 2 ? <Polyline key={`line-${d.id}`} coordinates={ahead} strokeColor={d.color} strokeWidth={2} lineDashPattern={[6, 4]} /> : null;
                   }
                   return null;
                 })}
 
-                {/* ETA labels at midpoint of routes */}
+                {/* ETA labels at midpoint of remaining route */}
                 {[...(userDriver && userDriver.routeWaypoints.length >= 2 && (userDriver.state === "to_pickup" || userDriver.state === "to_dropoff") ? [userDriver] : []), ...aiDrivers.filter((d) => d.routeWaypoints.length >= 2 && (d.state === "to_pickup" || d.state === "to_dropoff"))].map((d) => {
-                  const mid = polylineMidpoint(d.routeWaypoints);
+                  const ahead = remainingWaypoints(d.routeWaypoints, d.routeProgress);
+                  if (ahead.length < 2) return null;
+                  const mid = polylineMidpoint(ahead);
                   const etaMin = Math.floor(d.etaRemainingSec / 60);
                   const etaSec = Math.floor(d.etaRemainingSec % 60);
                   return (
@@ -960,7 +966,7 @@ export default function App() {
                   if (!pkg) return null;
                   const isTarget = userDriver?.targetDropoffId === pid;
                   return (
-                    <Marker key={`drop-${pid}`} coordinate={pkg.dropoffCoordinate} onPress={() => handleSwitchTarget(pid)}>
+                    <Marker key={`drop-${pid}`} coordinate={pkg.dropoffCoordinate} onPress={() => { markerJustPressed.current = true; handleSwitchTarget(pid); }}>
                       <View style={styles.dropoffMarkerWrap}>
                         <View style={[styles.dropoffMarker, isTarget ? styles.dropoffMarkerActive : null]}>
                           <MaterialCommunityIcons name="flag-checkered" size={16} color="#ffffff" />

@@ -63,6 +63,29 @@ export function polylineMidpoint(waypoints: LatLng[]): LatLng {
 }
 
 /**
+ * Return the sub-polyline from `traveledKm` onward (the remaining route ahead).
+ * The first point is the driver's current interpolated position.
+ */
+export function remainingWaypoints(waypoints: LatLng[], traveledKm: number): LatLng[] {
+  if (waypoints.length < 2) return waypoints;
+
+  let accumulated = 0;
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const segDist = haversineDistance(waypoints[i], waypoints[i + 1]);
+    if (segDist <= 0.00001) continue;
+
+    if (accumulated + segDist >= traveledKm) {
+      const frac = (traveledKm - accumulated) / segDist;
+      const currentPos = interpolate(waypoints[i], waypoints[i + 1], frac);
+      return [currentPos, ...waypoints.slice(i + 1)];
+    }
+    accumulated += segDist;
+  }
+
+  return [waypoints[waypoints.length - 1]];
+}
+
+/**
  * Move along a polyline by cumulative distance.
  * `traveledKm` is the total distance already traveled along this route.
  * `additionalKm` is the distance to add this tick.
