@@ -526,13 +526,10 @@ export default function App() {
                 if (hasArrived && ud.state === "to_pickup") {
                   const pickedUpAt = Date.now();
                   const nextPackages = [...ud.packages, targetPkg.id];
-                  const nextTargetDropoffId = ud.targetDropoffId ?? targetPkg.id;
 
                   ud.coordinate = { ...targetPkg.pickupCoordinate };
                   ud.packages = nextPackages;
-                  ud.state = "to_dropoff";
                   ud.targetPackageId = null;
-                  ud.targetDropoffId = nextTargetDropoffId;
                   ud.routeWaypoints = [];
                   ud.routeProgress = 0;
                   ud.routeDistanceKm = 0;
@@ -543,7 +540,8 @@ export default function App() {
                     p.id === targetPkg.id ? { ...p, status: "in_transit" as const, actualPickupTime: pickedUpAt } : p,
                   );
 
-                  if (nextPackages.length >= 2) {
+                  if (nextPackages.length >= MAX_PACKAGES_PER_DRIVER) {
+                    ud.state = "idle";
                     const dropoffCoords = new Map<string, LatLng>();
                     for (const pid of nextPackages) {
                       const pkg = pkgs.find((p) => p.id === pid);
@@ -553,9 +551,7 @@ export default function App() {
                     setOptimalOrder(order);
                     setShowOptimalOrderModal(true);
                   } else {
-                    fetchRoute(ud.coordinate, targetPkg.dropoffCoordinate).then((route) => {
-                      setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
-                    });
+                    ud.state = "idle";
                   }
                 }
               }
@@ -680,6 +676,7 @@ export default function App() {
   const handlePickupPackage = () => {
     if (!selectedPackage || !userDriver || !canPickupMore) return;
     if (selectedPackage.status !== "waiting") return;
+    if (userDriver.state === "to_dropoff") return;
 
     const pkgId = selectedPackage.id;
 
@@ -706,6 +703,19 @@ export default function App() {
     setSelectedPackageId(null);
   };
 
+  const handleStartDeliveries = () => {
+    if (!userDriver || userDriver.packages.length === 0) return;
+    const pkgIds = userDriver.packages;
+    const dropoffCoords = new Map<string, LatLng>();
+    for (const pid of pkgIds) {
+      const pkg = simPackages.find((p) => p.id === pid);
+      if (pkg) dropoffCoords.set(pid, pkg.dropoffCoordinate);
+    }
+    const order = computeOptimalOrder(userDriver.coordinate, pkgIds, dropoffCoords);
+    setOptimalOrder(order);
+    setShowOptimalOrderModal(true);
+  };
+
   const handleAcceptOptimalOrder = () => {
     setShowOptimalOrderModal(false);
     const firstId = optimalOrder[0];
@@ -713,7 +723,14 @@ export default function App() {
     setSimDrivers((prev) =>
       prev.map((d) => {
         if (d.id !== "user-driver") return d;
-        return { ...d, packages: [...optimalOrder], targetDropoffId: firstId };
+        return {
+          ...d,
+          packages: [...optimalOrder],
+          state: "to_dropoff" as const,
+          targetDropoffId: firstId,
+          routeWaypoints: [],
+          routeProgress: 0,
+        };
       }),
     );
     const firstPkg = simPackages.find((p) => p.id === firstId);
@@ -728,15 +745,27 @@ export default function App() {
 
   const handleRejectOptimalOrder = () => {
     setShowOptimalOrderModal(false);
-    if (userDriver && userDriver.targetDropoffId) {
-      const targetPkg = simPackages.find((p) => p.id === userDriver.targetDropoffId);
-      if (targetPkg) {
-        fetchRoute(userDriver.coordinate, targetPkg.dropoffCoordinate).then((route) => {
-          setSimDrivers((cur) =>
-            applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
-          );
-        });
-      }
+    if (!userDriver || userDriver.packages.length === 0) return;
+    const firstId = userDriver.packages[0];
+    const targetPkg = simPackages.find((p) => p.id === firstId);
+    if (targetPkg) {
+      setSimDrivers((prev) =>
+        prev.map((d) => {
+          if (d.id !== "user-driver") return d;
+          return {
+            ...d,
+            state: "to_dropoff" as const,
+            targetDropoffId: firstId,
+            routeWaypoints: [],
+            routeProgress: 0,
+          };
+        }),
+      );
+      fetchRoute(userDriver.coordinate, targetPkg.dropoffCoordinate).then((route) => {
+        setSimDrivers((cur) =>
+          applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+        );
+      });
     }
   };
 
@@ -1851,6 +1880,16 @@ export default function App() {
                 </Text>
               </View>
 
+              {/* Start Deliveries button — visible when user has packages and is idle (collecting) */}
+              {userDriver && userDriver.state === "idle" && userDriver.packages.length > 0 && (
+                <Pressable style={styles.startDeliveriesBtn} onPress={handleStartDeliveries}>
+                  <MaterialCommunityIcons name="truck-fast-outline" size={20} color="#ffffff" />
+                  <Text style={styles.startDeliveriesBtnText}>
+                    Start Deliveries ({userDriver.packages.length}/{MAX_PACKAGES_PER_DRIVER})
+                  </Text>
+                </Pressable>
+              )}
+
               {/* Package list button */}
               <Pressable style={styles.packageListBtn} onPress={() => setShowPackageList(true)}>
                 <MaterialCommunityIcons name="clipboard-list-outline" size={20} color="#0f5c45" />
@@ -1994,10 +2033,14 @@ export default function App() {
                   <Text style={styles.packageDetailText}>Pickup: {selectedPackage.pickupAddress}</Text>
                   <Text style={styles.packageDetailText}>Dropoff: {selectedPackage.dropoffAddress}</Text>
                   <Text style={styles.packageDetailPoints}>Reward: +{selectedPackage.rewardPoints} pts</Text>
-                  {selectedPackage.status === "waiting" && canPickupMore ? (
+                  {selectedPackage.status === "waiting" && canPickupMore && userDriver?.state !== "to_dropoff" ? (
                     <Pressable style={styles.packagePickupButton} onPress={handlePickupPackage}>
                       <Text style={styles.packagePickupButtonText}>Pick Up</Text>
                     </Pressable>
+                  ) : selectedPackage.status === "waiting" && userDriver?.state === "to_dropoff" ? (
+                    <View style={styles.packageLimitBadge}>
+                      <Text style={styles.packageLimitBadgeText}>Finish deliveries first</Text>
+                    </View>
                   ) : selectedPackage.status === "waiting" && !canPickupMore ? (
                     <View style={styles.packageLimitBadge}>
                       <Text style={styles.packageLimitBadgeText}>Pickup limit reached ({MAX_PACKAGES_PER_DRIVER})</Text>
@@ -2701,6 +2744,29 @@ const styles = StyleSheet.create({
   activePickupCard: { position: "absolute", top: 20, left: 20, backgroundColor: "rgba(255, 255, 255, 0.96)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   activePickupTitle: { fontSize: 12, fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   activePickupValue: { fontSize: 22, fontWeight: "800", color: "#0f5c45" },
+  startDeliveriesBtn: {
+    position: "absolute",
+    bottom: 130,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#0f5c45",
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  startDeliveriesBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
   packageListBtn: {
     position: "absolute",
     top: 20,
