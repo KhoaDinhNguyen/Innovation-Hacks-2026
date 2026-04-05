@@ -193,6 +193,15 @@ const staticPointHistory = [
 
 const mapRegion = { latitude: 33.4484, longitude: -112.074, latitudeDelta: 0.014, longitudeDelta: 0.014 } as const;
 const USER_ROUTE_ARRIVAL_THRESHOLD_KM = 0.05;
+const TRANSFER_CHECK_INTERVAL_MS = 5000;
+const TRANSFER_BONUS_POINTS = 20;
+const TRANSFER_SAVINGS_THRESHOLD = 0.6;
+const AI_DRIVER_NAMES = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+const getDriverDisplayName = (driverId: string): string => {
+  if (driverId === "user-driver") return "You";
+  const idx = parseInt(driverId.replace("ai-driver-", ""), 10);
+  return `Driver ${AI_DRIVER_NAMES[idx] ?? idx}`;
+};
 
 const tripHistory = [
   {
@@ -362,6 +371,18 @@ export default function App() {
   // Delivery confirmation
   const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
   const [deliveryConfirmPkgId, setDeliveryConfirmPkgId] = useState<string | null>(null);
+
+  // Package transfer suggestions
+  const [transferSuggestion, setTransferSuggestion] = useState<{
+    packageId: string;
+    aiDriverId: string;
+    aiDistance: number;
+    userDistance: number;
+    bonusPoints: number;
+  } | null>(null);
+  const transferActiveRef = useRef(false);
+  const lastTransferCheckRef = useRef(0);
+  const transferDeclinedRef = useRef(new Set<string>());
 
   const userDriver = simDrivers.find((d) => d.role === "user") ?? null;
   const aiDrivers = simDrivers.filter((d) => d.role === "ai");
@@ -602,6 +623,60 @@ export default function App() {
 
         setSimDrivers(updatedDrivers);
         queueTransferPlanning(updatedDrivers, pkgs, totalMs);
+
+        const now = Date.now();
+        if (
+          !transferActiveRef.current &&
+          now - lastTransferCheckRef.current > TRANSFER_CHECK_INTERVAL_MS
+        ) {
+          lastTransferCheckRef.current = now;
+          const ud = updatedDrivers.find((d) => d.id === "user-driver");
+          if (ud) {
+            const pendingUserPkgs = pkgs.filter(
+              (p) =>
+                p.status === "assigned" &&
+                p.assignedDriverId === "user-driver" &&
+                !transferDeclinedRef.current.has(p.id),
+            );
+            if (pendingUserPkgs.length > 0) {
+              let bestSuggestion: {
+                packageId: string;
+                aiDriverId: string;
+                aiDistance: number;
+                userDistance: number;
+                bonusPoints: number;
+              } | null = null;
+              let bestSavings = 0;
+
+              for (const pp of pendingUserPkgs) {
+                const userDist = haversineDistance(ud.coordinate, pp.pickupCoordinate);
+                for (const ai of updatedDrivers) {
+                  if (ai.role !== "ai") continue;
+                  if (ai.state !== "idle" && ai.state !== "cooldown") continue;
+                  if (ai.packages.length >= MAX_PACKAGES_PER_DRIVER) continue;
+                  const aiDist = haversineDistance(ai.coordinate, pp.pickupCoordinate);
+                  const savings = userDist - aiDist;
+                  if (aiDist < userDist * TRANSFER_SAVINGS_THRESHOLD && savings > bestSavings && savings > 0.3) {
+                    bestSavings = savings;
+                    bestSuggestion = {
+                      packageId: pp.id,
+                      aiDriverId: ai.id,
+                      aiDistance: aiDist,
+                      userDistance: userDist,
+                      bonusPoints: TRANSFER_BONUS_POINTS,
+                    };
+                  }
+                }
+              }
+
+              if (bestSuggestion) {
+                transferActiveRef.current = true;
+                setTransferSuggestion(bestSuggestion);
+              }
+            }
+          }
+        }
+
         return pkgs;
       });
       return prevDrivers;
@@ -633,6 +708,10 @@ export default function App() {
     setTotalCO2Saved(0);
     setDeliveryLog([]);
     setPointsPopups([]);
+    setTransferSuggestion(null);
+    transferActiveRef.current = false;
+    lastTransferCheckRef.current = 0;
+    transferDeclinedRef.current.clear();
     lastSpawnRef.current = 0;
     plannerBusyRef.current = false;
     plannerLastRunRef.current = 0;
@@ -661,6 +740,10 @@ export default function App() {
     setPointsPopups([]);
     setShowOptimalOrderModal(false);
     setShowDeliveryConfirm(false);
+    setTransferSuggestion(null);
+    transferActiveRef.current = false;
+    lastTransferCheckRef.current = 0;
+    transferDeclinedRef.current.clear();
     lastSpawnRef.current = 0;
     plannerBusyRef.current = false;
     plannerLastRunRef.current = 0;
@@ -967,6 +1050,108 @@ export default function App() {
     setActiveConflict(null);
   };
 
+  const handleAcceptTransfer = () => {
+    if (!transferSuggestion) return;
+    const { packageId, aiDriverId, bonusPoints } = transferSuggestion;
+    const pkg = simPackages.find((p) => p.id === packageId);
+    const aiDriver = simDrivers.find((d) => d.id === aiDriverId);
+    if (!pkg || !aiDriver) {
+      transferActiveRef.current = false;
+      setTransferSuggestion(null);
+      return;
+    }
+
+    setSimPackages((prev) =>
+      prev.map((p) => (p.id === packageId ? { ...p, assignedDriverId: aiDriverId } : p)),
+    );
+
+    setSimDrivers((prev) =>
+      prev.map((d) => {
+        if (d.id === aiDriverId) {
+          return {
+            ...d,
+            state: "to_pickup" as const,
+            targetPackageId: packageId,
+            routeWaypoints: [],
+            routeProgress: 0,
+            routeDistanceKm: 0,
+            routeDurationSec: 0,
+            etaRemainingSec: 0,
+          };
+        }
+        if (d.id === "user-driver" && d.targetPackageId === packageId) {
+          const remainingPending = simPackages.filter(
+            (p) => p.status === "assigned" && p.assignedDriverId === "user-driver" && p.id !== packageId,
+          );
+          if (remainingPending.length > 0) {
+            const pickupCoords = new Map<string, LatLng>();
+            for (const rp of remainingPending) pickupCoords.set(rp.id, rp.pickupCoordinate);
+            const order = computeOptimalOrder(d.coordinate, remainingPending.map((p) => p.id), pickupCoords);
+            const nextId = order[0];
+            const nextPkg = remainingPending.find((p) => p.id === nextId);
+            if (nextId && nextPkg) {
+              fetchRoute(d.coordinate, nextPkg.pickupCoordinate).then((route) => {
+                setSimDrivers((cur) =>
+                  applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+                );
+              });
+            }
+            return {
+              ...d,
+              state: "to_pickup" as const,
+              targetPackageId: nextId ?? null,
+              routeWaypoints: [],
+              routeProgress: 0,
+            };
+          }
+          return {
+            ...d,
+            state: "idle" as const,
+            targetPackageId: null,
+            routeWaypoints: [],
+            routeProgress: 0,
+            etaRemainingSec: 0,
+          };
+        }
+        return d;
+      }),
+    );
+
+    fetchRoute(aiDriver.coordinate, pkg.pickupCoordinate).then((route) => {
+      setSimDrivers((cur) =>
+        applyRouteToDriver(cur, aiDriverId, route.waypoints, route.distanceKm, route.durationSec),
+      );
+    });
+
+    const savedKm = transferSuggestion.userDistance - transferSuggestion.aiDistance;
+    setCurrentPoints((p) => p + bonusPoints);
+    setTotalCO2Saved((c) => c + savedKm * CO2_PER_KM);
+    setPointsPopups((prev) => [
+      ...prev,
+      {
+        id: `popup-transfer-${Date.now()}`,
+        coordinate: pkg.pickupCoordinate,
+        points: bonusPoints,
+        createdAt: Date.now(),
+        driverColor: "#2563eb",
+      },
+    ]);
+    setUserBannerText(`Transferred to ${getDriverDisplayName(aiDriverId)}! +${bonusPoints} pts  ·  ${savedKm.toFixed(1)} km saved`);
+    setShowUserBanner(true);
+    setTimeout(() => setShowUserBanner(false), 3000);
+
+    transferActiveRef.current = false;
+    setTransferSuggestion(null);
+  };
+
+  const handleDeclineTransfer = () => {
+    if (transferSuggestion) {
+      transferDeclinedRef.current.add(transferSuggestion.packageId);
+    }
+    transferActiveRef.current = false;
+    setTransferSuggestion(null);
+  };
+
   // Login screen
   if (!isLoggedIn) {
     return (
@@ -1179,6 +1364,75 @@ export default function App() {
                   <Text style={styles.conflictDismissText}>Keep Current</Text>
                 </Pressable>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Package transfer suggestion modal */}
+        <Modal
+          visible={!!transferSuggestion}
+          transparent
+          animationType="slide"
+          onRequestClose={handleDeclineTransfer}>
+          <View style={styles.conflictOverlay}>
+            <View style={styles.conflictModal}>
+              <View style={styles.conflictHeader}>
+                <MaterialCommunityIcons name="swap-horizontal" size={24} color="#2563eb" />
+                <Text style={styles.conflictTitle}>Package Transfer</Text>
+              </View>
+              {transferSuggestion && (() => {
+                const tPkg = simPackages.find((p) => p.id === transferSuggestion.packageId);
+                const tAi = simDrivers.find((d) => d.id === transferSuggestion.aiDriverId);
+                const savedKm = transferSuggestion.userDistance - transferSuggestion.aiDistance;
+                const savedCO2 = (savedKm * CO2_PER_KM).toFixed(2);
+                return (
+                  <>
+                    <Text style={styles.conflictText}>
+                      {getDriverDisplayName(transferSuggestion.aiDriverId)} is much closer to{" "}
+                      {tPkg?.label ?? "a package"} and can pick it up for you, saving{" "}
+                      {savedKm.toFixed(1)} km of driving and ~{savedCO2} kg CO2.
+                    </Text>
+                    <View style={styles.transferCompare}>
+                      <View style={styles.transferCompareItem}>
+                        <View style={[styles.transferDot, { backgroundColor: "#0f5c45" }]} />
+                        <View style={styles.transferCompareInfo}>
+                          <Text style={styles.transferCompareLabel}>You</Text>
+                          <Text style={styles.transferCompareDist}>
+                            {transferSuggestion.userDistance.toFixed(1)} km away
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.transferCompareItem}>
+                        <View style={[styles.transferDot, { backgroundColor: tAi?.color ?? "#6366f1" }]} />
+                        <View style={styles.transferCompareInfo}>
+                          <Text style={styles.transferCompareLabel}>
+                            {getDriverDisplayName(transferSuggestion.aiDriverId)}
+                          </Text>
+                          <Text style={styles.transferCompareDist}>
+                            {transferSuggestion.aiDistance.toFixed(1)} km away
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.transferSavings}>
+                      <MaterialCommunityIcons name="leaf" size={16} color="#16a34a" />
+                      <Text style={styles.transferSavingsText}>
+                        Saves {savedKm.toFixed(1)} km · ~{savedCO2} kg CO2
+                      </Text>
+                    </View>
+                    <View style={[styles.conflictActions, { marginTop: 16 }]}>
+                      <Pressable style={styles.conflictAcceptBtn} onPress={handleAcceptTransfer}>
+                        <Text style={styles.conflictAcceptText}>
+                          Accept (+{transferSuggestion.bonusPoints} pts)
+                        </Text>
+                      </Pressable>
+                      <Pressable style={styles.conflictDismissBtn} onPress={handleDeclineTransfer}>
+                        <Text style={styles.conflictDismissText}>Decline</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </View>
         </Modal>
@@ -3020,6 +3274,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   conflictDismissText: { fontSize: 15, fontWeight: "800", color: "#64748b" },
+
+  // Transfer suggestion
+  transferCompare: {
+    flexDirection: "column",
+    gap: 10,
+    marginTop: 14,
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 14,
+  },
+  transferCompareItem: { flexDirection: "row", alignItems: "center", gap: 10 },
+  transferDot: { width: 12, height: 12, borderRadius: 6 },
+  transferCompareInfo: { flex: 1 },
+  transferCompareLabel: { fontSize: 14, fontWeight: "800", color: "#0f172a" },
+  transferCompareDist: { fontSize: 13, color: "#64748b" },
+  transferSavings: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: "#dcfce7",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  transferSavingsText: { fontSize: 13, fontWeight: "700", color: "#166534" },
 
   // Package list modal
   packageListOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" },
