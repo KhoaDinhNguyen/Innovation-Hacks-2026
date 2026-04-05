@@ -925,7 +925,12 @@ export default function App() {
     );
   }
 
-  const simStats = mockStats;
+  const simStats = [
+    { id: "points", label: "Sustainable Points", value: String(currentPoints), change: `+${totalDeliveries * 3}%`, period: "this session", icon: "leaf" as const, iconColor: "#16a34a", iconBackground: "#dcfce7" },
+    { id: "co2", label: "kg CO2 Saved", value: totalCO2Saved.toFixed(1), change: `${totalCO2Saved > 0 ? "+" : ""}${(totalCO2Saved * 8).toFixed(0)}%`, period: "this session", icon: "cloud-check-outline" as const, iconColor: "#2563eb", iconBackground: "#dbeafe" },
+    { id: "trips", label: "Deliveries", value: String(totalDeliveries), change: `+${totalDeliveries}`, period: "completed", icon: "map-marker-path" as const, iconColor: "#9333ea", iconBackground: "#f3e8ff" },
+    { id: "drivers", label: "Active Drivers", value: String(simDrivers.filter((d) => d.state !== "idle" && d.state !== "cooldown").length), change: `${simDrivers.length}`, period: "total", icon: "truck-delivery-outline" as const, iconColor: "#d97706", iconBackground: "#fef3c7" },
+  ];
 
   return (
     <SafeAreaProvider>
