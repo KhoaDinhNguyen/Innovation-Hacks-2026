@@ -102,24 +102,34 @@ const mapRegion = {
   longitudeDelta: 0.028,
 } as const;
 
-const mapMarkers = [
+const driverLocation = {
+  latitude: 33.4484,
+  longitude: -112.074,
+} as const;
+
+const packageLocation = {
+  latitude: 33.4491,
+  longitude: -112.0732,
+} as const;
+
+const nearbyPackages = [
   {
-    id: "carpool-hub",
-    title: "South Campus Carpool",
-    description: "Shared rides depart from Campus Circle every 15 minutes.",
-    coordinate: { latitude: 33.4476, longitude: -112.0739 },
+    id: "pkg-1",
+    title: "Mock package pickup",
+    description: "Package ready for pickup near your current location.",
+    coordinate: packageLocation,
   },
   {
-    id: "bike-hub",
-    title: "Rio Bike Hub",
-    description: "Electric bike rentals and secure storage.",
-    coordinate: { latitude: 33.4489, longitude: -112.0762 },
+    id: "pkg-2",
+    title: "Mock package pickup",
+    description: "Small parcel waiting outside a nearby building.",
+    coordinate: { latitude: 33.4479, longitude: -112.0728 },
   },
   {
-    id: "ev-charge",
-    title: "EV Charging Plaza",
-    description: "Solar canopy with Level 2 chargers.",
-    coordinate: { latitude: 33.4493, longitude: -112.0724 },
+    id: "pkg-3",
+    title: "Mock package pickup",
+    description: "Delivery bag available for collection across the street.",
+    coordinate: { latitude: 33.4488, longitude: -112.0751 },
   },
 ] as const;
 
@@ -364,9 +374,9 @@ export default function App() {
                 <Text style={styles.appTitle}>Ecoride</Text>
                 <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
               </View>
-              <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
+              {/* <Pressable onPress={handleLogout} style={styles.logoutButton} hitSlop={12}>
                 <Text style={styles.logoutButtonText}>Log out</Text>
-              </Pressable>
+              </Pressable> */}
             </View>
           </View>
         )}
@@ -707,7 +717,7 @@ export default function App() {
                 <Text style={styles.cardTitle}>Trip History</Text>
               </Pressable>
 
-              <Pressable style={styles.profileLogoutButton}>
+              <Pressable style={styles.profileLogoutButton} onPress={() => handleLogout()}>
                 <MaterialCommunityIcons name="logout" size={20} color="#ffffff" />
                 <Text style={styles.profileLogoutButtonText}>Log out</Text>
               </Pressable>
@@ -720,18 +730,27 @@ export default function App() {
                 showsCompass
                 loadingEnabled
                 onRegionChangeComplete={(region) => console.log("Region changed:", region)}>
-                {mapMarkers.map((marker) => (
-                  <Marker
-                    key={marker.id}
-                    coordinate={marker.coordinate}
-                    title={marker.title}
-                    description={marker.description}
-                    onPress={() => console.log(`Marker pressed: ${marker.title}`)}
-                  />
+                <Marker
+                  coordinate={driverLocation}
+                  title="Your vehicle"
+                  description="You are online and ready to pick up deliveries.">
+                  <View style={styles.driverMarker}>
+                    <MaterialCommunityIcons name="car" size={18} color="#ffffff" />
+                  </View>
+                </Marker>
+                {nearbyPackages.map((pkg) => (
+                  <Marker key={pkg.id} coordinate={pkg.coordinate} title={pkg.title} description={pkg.description}>
+                    <View style={styles.packageMarker}>
+                      <MaterialCommunityIcons name="package-variant-closed" size={18} color="#ffffff" />
+                    </View>
+                  </Marker>
                 ))}
                 <Polyline
                   coordinates={[
-                    { latitude: 33.4484, longitude: -112.074 },
+                    driverLocation,
+                    nearbyPackages[0].coordinate,
+                    nearbyPackages[1].coordinate,
+                    nearbyPackages[2].coordinate,
                     { latitude: 33.4524, longitude: -112.0758 },
                   ]}
                   strokeColor="#000"
@@ -743,6 +762,13 @@ export default function App() {
                 <MaterialCommunityIcons name="magnify" size={20} color="#475569" />
                 <Text style={styles.mapSearchInput}>Search destinations, streets, transit stops</Text>
                 <MaterialCommunityIcons name="microphone" size={20} color="#475569" />
+              </View>
+
+              <View style={styles.driverStatusCard}>
+                <Text style={styles.driverStatusTitle}>Driver mode</Text>
+                <Text style={styles.driverStatusText}>
+                  A mock package is waiting just north-east of your current location.
+                </Text>
               </View>
             </View>
           )}
@@ -1823,6 +1849,52 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#475569",
     marginLeft: 12,
+  },
+  driverMarker: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#0f5c45",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#ffffff",
+  },
+  packageMarker: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "#f59e0b",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#ffffff",
+  },
+  driverStatusCard: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    bottom: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  driverStatusTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  driverStatusText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#475569",
   },
   profileLogoutButton: {
     backgroundColor: "#c2410c",
