@@ -1037,25 +1037,35 @@ export default function App() {
             <View style={styles.conflictModal}>
               <View style={styles.conflictHeader}>
                 <MaterialCommunityIcons name="routes" size={24} color="#0f5c45" />
-                <Text style={styles.conflictTitle}>Suggested Delivery Order</Text>
+                <Text style={styles.conflictTitle}>Optimized Route Plan</Text>
               </View>
               <Text style={styles.conflictText}>
-                We found an optimal route that minimizes your total driving distance.
+                We computed the shortest route to minimize your driving distance and CO2 emissions.
               </Text>
-              {optimalOrder.map((pid, idx) => {
-                const pkg = simPackages.find((p) => p.id === pid);
-                return pkg ? (
-                  <View key={pid} style={styles.optimalOrderRow}>
-                    <View style={styles.optimalOrderBadge}>
-                      <Text style={styles.optimalOrderBadgeText}>{idx + 1}</Text>
+              {(() => {
+                const actions: Array<{ key: string; step: number; type: "pickup" | "dropoff"; label: string; address: string }> = [];
+                let step = 1;
+                for (const pid of optimalOrder) {
+                  const pkg = simPackages.find((p) => p.id === pid);
+                  if (!pkg) continue;
+                  if (pkg.status === "assigned") {
+                    actions.push({ key: `pickup-${pid}`, step: step++, type: "pickup", label: pkg.label, address: pkg.pickupAddress });
+                  }
+                  actions.push({ key: `dropoff-${pid}`, step: step++, type: "dropoff", label: pkg.label, address: pkg.dropoffAddress });
+                }
+                return actions.map((a) => (
+                  <View key={a.key} style={styles.optimalOrderRow}>
+                    <View style={[styles.optimalOrderBadge, a.type === "pickup" ? styles.optimalOrderBadgePickup : null]}>
+                      <Text style={styles.optimalOrderBadgeText}>{a.step}</Text>
                     </View>
                     <View style={styles.optimalOrderInfo}>
-                      <Text style={styles.optimalOrderLabel}>{pkg.label}</Text>
-                      <Text style={styles.optimalOrderAddr}>{pkg.dropoffAddress}</Text>
+                      <Text style={styles.optimalOrderAction}>{a.type === "pickup" ? "Pick up" : "Drop off"}</Text>
+                      <Text style={styles.optimalOrderLabel}>{a.label}</Text>
+                      <Text style={styles.optimalOrderAddr}>{a.address}</Text>
                     </View>
                   </View>
-                ) : null;
-              })}
+                ));
+              })()}
               <View style={[styles.conflictActions, { marginTop: 16 }]}>
                 <Pressable style={styles.conflictAcceptBtn} onPress={handleAcceptOptimalOrder}>
                   <Text style={styles.conflictAcceptText}>Accept Route</Text>
@@ -1710,38 +1720,32 @@ export default function App() {
                 {/* Package markers (only non-delivered) */}
                 {simPackages
                   .filter((p) => p.status !== "delivered")
-                  .map((pkg) => (
-                    <Marker
-                      key={pkg.id}
-                      coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate}
-                      onPress={() => {
-                        markerJustPressed.current = true;
-                        setSelectedPackageId(pkg.id);
-                        setSelectedDriverId(null);
-                      }}>
-                      <View style={styles.packageMarkerWrap}>
-                        <View
-                          style={[
-                            styles.packageMarker,
-                            pkg.status === "in_transit" ? styles.packageMarkerDelivery : null,
-                            pkg.status === "assigned" ? styles.packageMarkerAssigned : null,
-                          ]}>
-                          <MaterialCommunityIcons
-                            name={pkg.status === "in_transit" ? "package-down" : "package-variant-closed"}
-                            size={18}
-                            color="#ffffff"
-                          />
+                  .map((pkg) => {
+                    const ownerDriver = pkg.assignedDriverId ? simDrivers.find((d) => d.id === pkg.assignedDriverId) : null;
+                    const ownerColor = ownerDriver?.color ?? null;
+                    const isOwned = pkg.status === "assigned" || pkg.status === "in_transit";
+                    return (
+                      <Marker
+                        key={pkg.id}
+                        coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate}
+                        onPress={() => {
+                          markerJustPressed.current = true;
+                          setSelectedPackageId(pkg.id);
+                          setSelectedDriverId(null);
+                        }}>
+                        <View style={styles.packageMarkerWrap}>
+                          <View style={[styles.packageMarker, isOwned && ownerColor ? { backgroundColor: ownerColor } : null]}>
+                            <MaterialCommunityIcons
+                              name={pkg.status === "in_transit" ? "package-down" : "package-variant-closed"}
+                              size={18}
+                              color="#ffffff"
+                            />
+                          </View>
+                          <View style={[styles.packageMarkerTail, isOwned && ownerColor ? { backgroundColor: ownerColor } : null]} />
                         </View>
-                        <View
-                          style={[
-                            styles.packageMarkerTail,
-                            pkg.status === "in_transit" ? styles.packageMarkerTailDelivery : null,
-                            pkg.status === "assigned" ? styles.packageMarkerTailAssigned : null,
-                          ]}
-                        />
-                      </View>
-                    </Marker>
-                  ))}
+                      </Marker>
+                    );
+                  })}
 
                 {/* Road-following polylines: user driver (remaining route only) */}
                 {userDriver &&
@@ -2998,7 +3002,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optimalOrderBadgeText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
+  optimalOrderBadgePickup: { backgroundColor: "#2563eb" },
   optimalOrderInfo: { flex: 1 },
+  optimalOrderAction: { fontSize: 11, fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 2 },
   optimalOrderLabel: { fontSize: 15, fontWeight: "800", color: "#0f172a" },
   optimalOrderAddr: { fontSize: 12, color: "#475569", marginTop: 2 },
 
