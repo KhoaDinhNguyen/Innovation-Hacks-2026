@@ -46,19 +46,148 @@ type TabKey = "dashboard" | "map" | "reward" | "history" | "profile" | "tracking
 
 const rewardProgress = { current: 360, goal: 500 };
 
-const vouchers = [
-  { id: "1", title: "Free Coffee Voucher", description: "Redeem this voucher for one free handcrafted coffee or tea.", points: 150, partner: "Apple", status: "redeemed", accentColor: "#f59e0b", logoIcon: "apple", logoBackground: "#f3f4f6", logoColor: "#111827" },
-  { id: "2", title: "Campus Smoothie Voucher", description: "Redeem this voucher for one free fruit smoothie.", points: 180, partner: "Google", status: "redeemed", accentColor: "#ec4899", logoIcon: "google", logoBackground: "#eff6ff", logoColor: "#2563eb" },
-  { id: "3", title: "Bus Pass Discount", description: "Use this voucher to lower the cost of your next bus or metro pass.", points: 280, partner: "Microsoft", status: "unlock", accentColor: "#3b82f6", logoIcon: "microsoft-windows", logoBackground: "#eff6ff", logoColor: "#2563eb" },
-  { id: "4", title: "Lunch Combo Discount", description: "Use this voucher to save on a sustainable lunch combo.", points: 320, partner: "Meta", status: "unlock", accentColor: "#8b5cf6", logoIcon: "facebook", logoBackground: "#eef2ff", logoColor: "#4338ca" },
-  { id: "5", title: "Eco Store Gift Card", description: "Exchange this for store credit on reusable and eco-friendly products.", points: 450, partner: "Amazon", status: "lock", accentColor: "#14b8a6", logoIcon: "aws", logoBackground: "#fff7ed", logoColor: "#c2410c" },
-  { id: "6", title: "Weekend Rail Pass", description: "Unlock a discounted rail pass for your weekend trips.", points: 520, partner: "NVIDIA", status: "lock", accentColor: "#ef4444", logoIcon: "expansion-card", logoBackground: "#ecfccb", logoColor: "#3f6212" },
+const mockStats = [
+  {
+    id: "points",
+    label: "Sustainable Points",
+    value: "1,284",
+    change: "+18%",
+    period: "this week",
+    icon: "leaf" as const,
+    iconColor: "#16a34a",
+    iconBackground: "#dcfce7",
+  },
+  {
+    id: "co2",
+    label: "kg CO2 Saved",
+    value: "243.6",
+    change: "+12%",
+    period: "this month",
+    icon: "cloud-check-outline" as const,
+    iconColor: "#2563eb",
+    iconBackground: "#dbeafe",
+  },
+  {
+    id: "trips",
+    label: "Deliveries",
+    value: "86",
+    change: "+24",
+    period: "completed",
+    icon: "map-marker-path" as const,
+    iconColor: "#9333ea",
+    iconBackground: "#f3e8ff",
+  },
+  {
+    id: "drivers",
+    label: "Active Drivers",
+    value: "14",
+    change: "21 total",
+    period: "across Phoenix",
+    icon: "truck-delivery-outline" as const,
+    iconColor: "#d97706",
+    iconBackground: "#fef3c7",
+  },
+] as const;
+
+const mockPathSummary = {
+  totalPoints: "1,284",
+  co2SavedKg: "243.6",
+} as const;
+
+type VoucherStatus = "lock" | "unlock" | "redeemed";
+
+type Voucher = {
+  id: string;
+  title: string;
+  description: string;
+  points: number;
+  partner: string;
+  status: VoucherStatus;
+  accentColor: string;
+  logoIcon: ComponentProps<typeof MaterialCommunityIcons>["name"];
+  logoBackground: string;
+  logoColor: string;
+};
+
+const vouchers: Voucher[] = [
+  {
+    id: "1",
+    title: "Free Coffee Voucher",
+    description: "Redeem this voucher for one free handcrafted coffee or tea.",
+    points: 150,
+    partner: "Apple",
+    status: "redeemed",
+    accentColor: "#f59e0b",
+    logoIcon: "apple",
+    logoBackground: "#f3f4f6",
+    logoColor: "#111827",
+  },
+  {
+    id: "2",
+    title: "Campus Smoothie Voucher",
+    description: "Redeem this voucher for one free fruit smoothie.",
+    points: 180,
+    partner: "Google",
+    status: "redeemed",
+    accentColor: "#ec4899",
+    logoIcon: "google",
+    logoBackground: "#eff6ff",
+    logoColor: "#2563eb",
+  },
+  {
+    id: "3",
+    title: "Bus Pass Discount",
+    description: "Use this voucher to lower the cost of your next bus or metro pass.",
+    points: 280,
+    partner: "Microsoft",
+    status: "unlock",
+    accentColor: "#3b82f6",
+    logoIcon: "microsoft-windows",
+    logoBackground: "#eff6ff",
+    logoColor: "#2563eb",
+  },
+  {
+    id: "4",
+    title: "Lunch Combo Discount",
+    description: "Use this voucher to save on a sustainable lunch combo.",
+    points: 320,
+    partner: "Meta",
+    status: "unlock",
+    accentColor: "#8b5cf6",
+    logoIcon: "facebook",
+    logoBackground: "#eef2ff",
+    logoColor: "#4338ca",
+  },
+  {
+    id: "5",
+    title: "Eco Store Gift Card",
+    description: "Exchange this for store credit on reusable and eco-friendly products.",
+    points: 450,
+    partner: "Amazon",
+    status: "lock",
+    accentColor: "#14b8a6",
+    logoIcon: "aws",
+    logoBackground: "#fff7ed",
+    logoColor: "#c2410c",
+  },
+  {
+    id: "6",
+    title: "Weekend Rail Pass",
+    description: "Unlock a discounted rail pass for your weekend trips.",
+    points: 520,
+    partner: "NVIDIA",
+    status: "lock",
+    accentColor: "#ef4444",
+    logoIcon: "expansion-card",
+    logoBackground: "#ecfccb",
+    logoColor: "#3f6212",
+  },
 ] as const;
 
 const staticPointHistory = [
-  { id: "s1", title: "Carpooled to campus", points: "+40", date: "Today" },
-  { id: "s2", title: "Used public transport", points: "+25", date: "Yesterday" },
-  { id: "s3", title: "Completed weekly eco goal", points: "+80", date: "Apr 2" },
+  { id: "s1", title: "Delivered PKG-1042 from North Hub", points: "+42", date: "Today" },
+  { id: "s2", title: "Completed optimized drop-off route", points: "+35", date: "Yesterday" },
+  { id: "s3", title: "Accepted shared delivery transfer", points: "+28", date: "Apr 2" },
   { id: "s4", title: "Redeemed coffee voucher", points: "-150", date: "Apr 1" },
 ];
 
@@ -66,8 +195,66 @@ const mapRegion = { latitude: 33.4484, longitude: -112.074, latitudeDelta: 0.014
 const USER_ROUTE_ARRIVAL_THRESHOLD_KM = 0.05;
 
 const tripHistory = [
-  { id: "1", date: "Today", time: "2:30 PM", from: "Home", to: "Central Park", points: "+40", co2: "2.5 kg CO2", distance: "3.2 km", duration: "15 min", vehicleIcon: "walk" },
-  { id: "2", date: "Yesterday", time: "8:10 AM", from: "Dorm A", to: "ASU Campus", points: "+25", co2: "1.8 kg CO2", distance: "4.1 km", duration: "18 min", vehicleIcon: "bike-fast" },
+  {
+    id: "1",
+    date: "Today",
+    time: "2:30 PM",
+    from: "North Hub",
+    to: "824 Mill Ave (Residence)",
+    points: "+42",
+    co2: "2.8 kg CO2",
+    distance: "3.4 km",
+    duration: "16 min",
+    vehicleIcon: "bike-fast",
+  },
+  {
+    id: "2",
+    date: "Yesterday",
+    time: "11:05 AM",
+    from: "Central Delivery Station",
+    to: "1450 University Dr (Amazon Locker)",
+    points: "+35",
+    co2: "2.1 kg CO2",
+    distance: "2.9 km",
+    duration: "14 min",
+    vehicleIcon: "truck-delivery-outline",
+  },
+  {
+    id: "3",
+    date: "Apr 2",
+    time: "4:45 PM",
+    from: "South Depot",
+    to: "902 Rio Salado Pkwy (Office Building)",
+    points: "+51",
+    co2: "3.4 kg CO2",
+    distance: "4.6 km",
+    duration: "21 min",
+    vehicleIcon: "scooter",
+  },
+  {
+    id: "4",
+    date: "Apr 1",
+    time: "9:20 AM",
+    from: "North Hub",
+    to: "611 Terrace Rd (Apartment Complex)",
+    points: "+28",
+    co2: "1.7 kg CO2",
+    distance: "2.3 km",
+    duration: "12 min",
+    vehicleIcon: "bike-fast",
+  },
+] as const;
+
+const mockQrPattern = [
+  "111111100",
+  "100000101",
+  "101110101",
+  "101110101",
+  "101110101",
+  "100000101",
+  "111111101",
+  "001011001",
+  "111001111",
 ] as const;
 
 const profileDetails = [
@@ -78,9 +265,49 @@ const profileDetails = [
 ] as const;
 
 const honorTiers = [
-  { id: "gaia-vanguard", title: 'The "Gaia Vanguard"', pointsRequired: 500, benefits: ["30% discount on eco-products", "VIP customer support 24/7", "Gold eco-badge on profile", "Exclusive event invitations", "Free yearly carbon offset", "Personal sustainability advisor", "Featured in hall of fame"], accentColor: "#a855f7", icon: "shield-outline" },
-  { id: "kinetic-strategist", title: 'The "Kinetic Strategist"', pointsRequired: 300, benefits: ["15% discount on eco-products", "Priority customer support", "Silver eco-badge on profile", "Early access to new features", "Free carbon offset report"], accentColor: "#3b82f6", icon: "lightning-bolt-outline" },
-  { id: "eco-explorer", title: 'The "Eco-Explorer"', pointsRequired: 150, benefits: ["5% discount on eco-products", "Monthly sustainability newsletter", "Basic eco-badge on profile", "Access to community forum"], accentColor: "#22c55e", icon: "compass-outline" },
+  {
+    id: "gaia-vanguard",
+    title: 'The "Gaia Vanguard"',
+    pointsRequired: 500,
+    benefits: [
+      "30% discount on eco-products",
+      "VIP customer support 24/7",
+      "Gold eco-badge on profile",
+      "Exclusive event invitations",
+      "Free yearly carbon offset",
+      "Personal sustainability advisor",
+      "Featured in hall of fame",
+    ],
+    accentColor: "#a855f7",
+    icon: "shield-outline",
+  },
+  {
+    id: "kinetic-strategist",
+    title: 'The "Kinetic Strategist"',
+    pointsRequired: 300,
+    benefits: [
+      "15% discount on eco-products",
+      "Priority customer support",
+      "Silver eco-badge on profile",
+      "Early access to new features",
+      "Free carbon offset report",
+    ],
+    accentColor: "#3b82f6",
+    icon: "lightning-bolt-outline",
+  },
+  {
+    id: "eco-explorer",
+    title: 'The "Eco-Explorer"',
+    pointsRequired: 150,
+    benefits: [
+      "5% discount on eco-products",
+      "Monthly sustainability newsletter",
+      "Basic eco-badge on profile",
+      "Access to community forum",
+    ],
+    accentColor: "#22c55e",
+    icon: "compass-outline",
+  },
 ] as const;
 
 function formatSimTime(ms: number): string {
@@ -97,6 +324,7 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [currentPoints, setCurrentPoints] = useState(rewardProgress.current);
+  const [voucherList, setVoucherList] = useState<Voucher[]>(() => vouchers.map((voucher) => ({ ...voucher })));
 
   // Simulation state
   const [simPackages, setSimPackages] = useState<SimPackage[]>([]);
@@ -129,6 +357,7 @@ export default function App() {
   // Optimal order modal
   const [showOptimalOrderModal, setShowOptimalOrderModal] = useState(false);
   const [optimalOrder, setOptimalOrder] = useState<string[]>([]);
+  const [selectedRedeemedVoucher, setSelectedRedeemedVoucher] = useState<Voucher | null>(null);
 
   // Delivery confirmation
   const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
@@ -152,7 +381,13 @@ export default function App() {
 
   const progressPercentage = (currentPoints / rewardProgress.goal) * 100;
   const progressWidth = `${Math.min(progressPercentage, 100)}%` as const;
-  const currentHonor = currentPoints >= 500 ? 'The "Gaia Vanguard"' : currentPoints >= 300 ? 'The "Kinetic Strategist"' : 'The "Eco-Explorer"';
+  const currentHonor =
+    currentPoints >= 500
+      ? 'The "Gaia Vanguard"'
+      : currentPoints >= 300
+        ? 'The "Kinetic Strategist"'
+        : 'The "Eco-Explorer"';
+  const currentTier = honorTiers.find((tier) => tier.title === currentHonor) ?? honorTiers[honorTiers.length - 1];
 
   const allPointHistory = [...deliveryLog, ...staticPointHistory];
 
@@ -197,6 +432,27 @@ export default function App() {
       });
   }, []);
 
+  const displayedVouchers: Voucher[] = voucherList.map((voucher) => ({
+    ...voucher,
+    status: voucher.status === "redeemed" ? "redeemed" : currentPoints >= voucher.points ? "unlock" : "lock",
+  }));
+
+  const handleRedeemVoucher = (voucherId: string) => {
+    let redeemedVoucher: Voucher | null = null;
+
+    setVoucherList((prev) =>
+      prev.map((voucher) => {
+        if (voucher.id !== voucherId || voucher.status !== "unlock") return voucher;
+        redeemedVoucher = { ...voucher, status: "redeemed" };
+        return redeemedVoucher;
+      }),
+    );
+
+    if (redeemedVoucher) {
+      setSelectedRedeemedVoucher(redeemedVoucher);
+    }
+  };
+
   const onSimTick = useCallback((deltaMs: number, totalMs: number) => {
     setSimPackages((prev) => {
       let pkgs = prev;
@@ -227,7 +483,12 @@ export default function App() {
               if (p) {
                 const co2 = haversineDistance(p.pickupCoordinate, p.dropoffCoordinate) * CO2_PER_KM;
                 newCO2 += co2;
-                allDelivered.push({ pkgId: did, driverColor: result.driver.color, coordinate: { ...result.driver.coordinate }, points: p.rewardPoints });
+                allDelivered.push({
+                  pkgId: did,
+                  driverColor: result.driver.color,
+                  coordinate: { ...result.driver.coordinate },
+                  points: p.rewardPoints,
+                });
               }
             }
 
@@ -237,7 +498,9 @@ export default function App() {
                 pendingRouteRequests.current.add(reqKey);
                 fetchRoute(req.from, req.to).then((route) => {
                   pendingRouteRequests.current.delete(reqKey);
-                  setSimDrivers((cur) => applyRouteToDriver(cur, req.driverId, route.waypoints, route.distanceKm, route.durationSec));
+                  setSimDrivers((cur) =>
+                    applyRouteToDriver(cur, req.driverId, route.waypoints, route.distanceKm, route.durationSec),
+                  );
                 });
               }
             }
@@ -251,9 +514,10 @@ export default function App() {
               ud.totalDistanceKm += uDistKm;
               ud.etaRemainingSec = Math.max(0, ud.etaRemainingSec - deltaMs / 1000);
 
-              const targetPkg = ud.state === "to_pickup"
-                ? pkgs.find((p) => p.id === ud.targetPackageId)
-                : pkgs.find((p) => p.id === ud.targetDropoffId);
+              const targetPkg =
+                ud.state === "to_pickup"
+                  ? pkgs.find((p) => p.id === ud.targetPackageId)
+                  : pkgs.find((p) => p.id === ud.targetDropoffId);
               if (targetPkg) {
                 const dest = ud.state === "to_pickup" ? targetPkg.pickupCoordinate : targetPkg.dropoffCoordinate;
                 ud.heading = bearing(ud.coordinate, dest);
@@ -383,9 +647,18 @@ export default function App() {
 
   const handleLogin = () => {
     const email = loginEmail.trim();
-    if (!email || !loginPassword) { setLoginError("Enter email and password."); return; }
-    if (!email.includes("@")) { setLoginError("Enter a valid email address."); return; }
-    if (loginPassword.length < 4) { setLoginError("Password must be at least 4 characters."); return; }
+    if (!email || !loginPassword) {
+      setLoginError("Enter email and password.");
+      return;
+    }
+    if (!email.includes("@")) {
+      setLoginError("Enter a valid email address.");
+      return;
+    }
+    if (loginPassword.length < 4) {
+      setLoginError("Password must be at least 4 characters.");
+      return;
+    }
     setLoginError(null);
     setIsLoggedIn(true);
     initSimulation();
@@ -431,14 +704,18 @@ export default function App() {
     setShowOptimalOrderModal(false);
     const firstId = optimalOrder[0];
     if (!firstId) return;
-    setSimDrivers((prev) => prev.map((d) => {
-      if (d.id !== "user-driver") return d;
-      return { ...d, packages: [...optimalOrder], targetDropoffId: firstId };
-    }));
+    setSimDrivers((prev) =>
+      prev.map((d) => {
+        if (d.id !== "user-driver") return d;
+        return { ...d, packages: [...optimalOrder], targetDropoffId: firstId };
+      }),
+    );
     const firstPkg = simPackages.find((p) => p.id === firstId);
     if (firstPkg && userDriver) {
       fetchRoute(userDriver.coordinate, firstPkg.dropoffCoordinate).then((route) => {
-        setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+        setSimDrivers((cur) =>
+          applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+        );
       });
     }
   };
@@ -449,7 +726,9 @@ export default function App() {
       const targetPkg = simPackages.find((p) => p.id === userDriver.targetDropoffId);
       if (targetPkg) {
         fetchRoute(userDriver.coordinate, targetPkg.dropoffCoordinate).then((route) => {
-          setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+          setSimDrivers((cur) =>
+            applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+          );
         });
       }
     }
@@ -469,42 +748,67 @@ export default function App() {
     setShowDeliveryConfirm(false);
     setDeliveryConfirmPkgId(null);
 
-    setSimPackages((prev) => prev.map((p) =>
-      p.id === pkgId ? { ...p, status: "delivered" as const, actualDropoffTime: Date.now() } : p,
-    ));
+    setSimPackages((prev) =>
+      prev.map((p) => (p.id === pkgId ? { ...p, status: "delivered" as const, actualDropoffTime: Date.now() } : p)),
+    );
 
     const co2 = haversineDistance(pkg.pickupCoordinate, pkg.dropoffCoordinate) * CO2_PER_KM;
     setTotalDeliveries((d) => d + 1);
     setTotalCO2Saved((c) => c + co2);
     setCurrentPoints((p) => p + pkg.rewardPoints);
-    setDeliveryLog((prev) => [{ id: `del-${Date.now()}`, title: `Delivered ${pkg.label}`, points: `+${pkg.rewardPoints}`, date: "Just now" }, ...prev]);
+    setDeliveryLog((prev) => [
+      { id: `del-${Date.now()}`, title: `Delivered ${pkg.label}`, points: `+${pkg.rewardPoints}`, date: "Just now" },
+      ...prev,
+    ]);
 
-    setPointsPopups((prev) => [...prev, {
-      id: `popup-user-${Date.now()}`,
-      coordinate: { ...pkg.dropoffCoordinate },
-      points: pkg.rewardPoints,
-      createdAt: Date.now(),
-      driverColor: "#0f5c45",
-    }]);
+    setPointsPopups((prev) => [
+      ...prev,
+      {
+        id: `popup-user-${Date.now()}`,
+        coordinate: { ...pkg.dropoffCoordinate },
+        points: pkg.rewardPoints,
+        createdAt: Date.now(),
+        driverColor: "#0f5c45",
+      },
+    ]);
     setUserBannerText(`Package delivered! +${pkg.rewardPoints} pts`);
     setShowUserBanner(true);
     setTimeout(() => setShowUserBanner(false), 2500);
 
-    setSimDrivers((prev) => prev.map((d) => {
-      if (d.id !== "user-driver") return d;
-      const remaining = d.packages.filter((pid) => pid !== pkgId);
-      if (remaining.length > 0) {
-        const nextId = remaining[0];
-        const nextPkg = simPackages.find((p) => p.id === nextId);
-        if (nextPkg) {
-          fetchRoute(d.coordinate, nextPkg.dropoffCoordinate).then((route) => {
-            setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
-          });
+    setSimDrivers((prev) =>
+      prev.map((d) => {
+        if (d.id !== "user-driver") return d;
+        const remaining = d.packages.filter((pid) => pid !== pkgId);
+        if (remaining.length > 0) {
+          const nextId = remaining[0];
+          const nextPkg = simPackages.find((p) => p.id === nextId);
+          if (nextPkg) {
+            fetchRoute(d.coordinate, nextPkg.dropoffCoordinate).then((route) => {
+              setSimDrivers((cur) =>
+                applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+              );
+            });
+          }
+          return {
+            ...d,
+            packages: remaining,
+            state: "to_dropoff" as const,
+            targetDropoffId: nextId,
+            routeWaypoints: [],
+            routeProgress: 0,
+          };
         }
-        return { ...d, packages: remaining, state: "to_dropoff" as const, targetDropoffId: nextId, routeWaypoints: [], routeProgress: 0 };
-      }
-      return { ...d, packages: [], state: "idle" as const, targetDropoffId: null, routeWaypoints: [], routeProgress: 0, etaRemainingSec: 0 };
-    }));
+        return {
+          ...d,
+          packages: [],
+          state: "idle" as const,
+          targetDropoffId: null,
+          routeWaypoints: [],
+          routeProgress: 0,
+          etaRemainingSec: 0,
+        };
+      }),
+    );
   };
 
   const handleDropoffPackage = (pkgId: string) => {
@@ -515,11 +819,15 @@ export default function App() {
     if (!userDriver) return;
     const pkg = simPackages.find((p) => p.id === pkgId);
     if (!pkg) return;
-    setSimDrivers((prev) => prev.map((d) =>
-      d.id === "user-driver" ? { ...d, targetDropoffId: pkgId, routeWaypoints: [], routeProgress: 0 } : d,
-    ));
+    setSimDrivers((prev) =>
+      prev.map((d) =>
+        d.id === "user-driver" ? { ...d, targetDropoffId: pkgId, routeWaypoints: [], routeProgress: 0 } : d,
+      ),
+    );
     fetchRoute(userDriver.coordinate, pkg.dropoffCoordinate).then((route) => {
-      setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+      setSimDrivers((cur) =>
+        applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+      );
     });
   };
 
@@ -553,8 +861,14 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
-        <KeyboardAvoidingView style={styles.loginKeyboardView} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}>
-          <ScrollView contentContainerStyle={styles.loginScrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView
+          style={styles.loginKeyboardView}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}>
+          <ScrollView
+            contentContainerStyle={styles.loginScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
             <View style={styles.loginBrandBlock}>
               <View style={styles.loginLogoCircle}>
                 <MaterialCommunityIcons name="leaf-circle" size={42} color="#0f5c45" />
@@ -564,15 +878,36 @@ export default function App() {
             </View>
             <View style={styles.loginCard}>
               <Text style={styles.loginCardTitle}>Sign in</Text>
-              <View style={styles.loginInfoBlock}>
-                <Text style={styles.loginDisclaimer}>Mock login for our hackathon MVP only. This is not a real or secure sign-in: there is no backend authentication, credentials are not stored, and nothing is encrypted like production auth.</Text>
-                <Text style={styles.loginRules}><Text style={styles.loginRulesLabel}>Allowed: </Text>any email that contains @ and any password with 4 or more characters (example: you@demo.com / pass1234).</Text>
-                <Text style={styles.loginRules}><Text style={styles.loginRulesLabel}>Not allowed: </Text>empty email or password, an email with no @, or a password shorter than 4 characters.</Text>
-              </View>
+
               <Text style={styles.loginLabel}>Email</Text>
-              <TextInput style={styles.loginInput} placeholder="you@example.com" placeholderTextColor="#94a3b8" value={loginEmail} onChangeText={(t) => { setLoginEmail(t); setLoginError(null); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+              <TextInput
+                style={styles.loginInput}
+                placeholder="you@example.com"
+                placeholderTextColor="#94a3b8"
+                value={loginEmail}
+                onChangeText={(t) => {
+                  setLoginEmail(t);
+                  setLoginError(null);
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+              />
               <Text style={styles.loginLabel}>Password</Text>
-              <TextInput style={styles.loginInput} placeholder="••••••••" placeholderTextColor="#94a3b8" value={loginPassword} onChangeText={(t) => { setLoginPassword(t); setLoginError(null); }} secureTextEntry autoCapitalize="none" autoComplete="password" />
+              <TextInput
+                style={styles.loginInput}
+                placeholder="••••••••"
+                placeholderTextColor="#94a3b8"
+                value={loginPassword}
+                onChangeText={(t) => {
+                  setLoginPassword(t);
+                  setLoginError(null);
+                }}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="password"
+              />
               {loginError ? <Text style={styles.loginErrorText}>{loginError}</Text> : null}
               <Pressable style={styles.loginButton} onPress={handleLogin}>
                 <Text style={styles.loginButtonText}>Sign in</Text>
@@ -584,13 +919,7 @@ export default function App() {
     );
   }
 
-  // Build stat values from simulation
-  const simStats = [
-    { id: "points", label: "Sustainable Points", value: String(currentPoints), change: `+${totalDeliveries * 3}%`, period: "this session", icon: "leaf" as const, iconColor: "#16a34a", iconBackground: "#dcfce7" },
-    { id: "co2", label: "kg CO2 Saved", value: totalCO2Saved.toFixed(1), change: `${totalCO2Saved > 0 ? "+" : ""}${(totalCO2Saved * 8).toFixed(0)}%`, period: "this session", icon: "cloud-check-outline" as const, iconColor: "#2563eb", iconBackground: "#dbeafe" },
-    { id: "trips", label: "Deliveries", value: String(totalDeliveries), change: `+${totalDeliveries}`, period: "completed", icon: "map-marker-path" as const, iconColor: "#9333ea", iconBackground: "#f3e8ff" },
-    { id: "drivers", label: "Active Drivers", value: String(simDrivers.filter((d) => d.state !== "idle" && d.state !== "cooldown").length), change: `${simDrivers.length}`, period: "total", icon: "truck-delivery-outline" as const, iconColor: "#d97706", iconBackground: "#fef3c7" },
-  ];
+  const simStats = mockStats;
 
   return (
     <SafeAreaProvider>
@@ -605,7 +934,10 @@ export default function App() {
                 <Text style={styles.appSubtitle}>Ride greener. Earn more rewards.</Text>
               </View>
               <View style={styles.appHeaderActions}>
-                <Pressable style={styles.notificationBell} onPress={() => setShowDriverNotice((prev) => !prev)} hitSlop={10}>
+                <Pressable
+                  style={styles.notificationBell}
+                  onPress={() => setShowDriverNotice((prev) => !prev)}
+                  hitSlop={10}>
                   <MaterialCommunityIcons name="bell-outline" size={22} color="#0f5c45" />
                   {waitingCount > 0 ? <View style={styles.notificationDot} /> : null}
                 </Pressable>
@@ -615,9 +947,18 @@ export default function App() {
         )}
 
         {/* Nearby packages modal */}
-        <Modal visible={showDriverNotice} transparent animationType="fade" onRequestClose={() => setShowDriverNotice(false)}>
+        <Modal
+          visible={showDriverNotice}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDriverNotice(false)}>
           <Pressable style={styles.driverNoticeOverlay} onPress={() => setShowDriverNotice(false)}>
-            <Pressable style={styles.driverNoticeModal} onPress={() => { setShowDriverNotice(false); setActiveTab("map"); }}>
+            <Pressable
+              style={styles.driverNoticeModal}
+              onPress={() => {
+                setShowDriverNotice(false);
+                setActiveTab("map");
+              }}>
               <View style={styles.driverNoticeHeader}>
                 <MaterialCommunityIcons name="package-variant-closed" size={18} color="#0f5c45" />
                 <Text style={styles.driverNoticeTitle}>Available packages</Text>
@@ -629,7 +970,11 @@ export default function App() {
         </Modal>
 
         {/* Conflict alert modal */}
-        <Modal visible={!!activeConflict} transparent animationType="slide" onRequestClose={() => handleConflictAction(false)}>
+        <Modal
+          visible={!!activeConflict}
+          transparent
+          animationType="slide"
+          onRequestClose={() => handleConflictAction(false)}>
           <View style={styles.conflictOverlay}>
             <View style={styles.conflictModal}>
               <View style={styles.conflictHeader}>
@@ -640,7 +985,7 @@ export default function App() {
                 <>
                   <Text style={styles.conflictText}>
                     {simDrivers.find((d) => d.id === activeConflict.driverAId)?.name ?? "Driver A"} and{" "}
-                    {simDrivers.find((d) => d.id === activeConflict.driverBId)?.name ?? "Driver B"} can consolidate nearby deliveries.
+                    {simDrivers.find((d) => d.id === activeConflict.driverBId)?.name ?? "Driver B"} can consolidate nearby deliveries in the same area.
                   </Text>
                   <View style={styles.conflictSavingsRow}>
                     <View style={styles.conflictSavingBox}>
@@ -672,19 +1017,27 @@ export default function App() {
         </Modal>
 
         {/* Optimal order modal */}
-        <Modal visible={showOptimalOrderModal} transparent animationType="slide" onRequestClose={handleRejectOptimalOrder}>
+        <Modal
+          visible={showOptimalOrderModal}
+          transparent
+          animationType="slide"
+          onRequestClose={handleRejectOptimalOrder}>
           <View style={styles.conflictOverlay}>
             <View style={styles.conflictModal}>
               <View style={styles.conflictHeader}>
                 <MaterialCommunityIcons name="routes" size={24} color="#0f5c45" />
                 <Text style={styles.conflictTitle}>Suggested Delivery Order</Text>
               </View>
-              <Text style={styles.conflictText}>We found an optimal route that minimizes your total driving distance.</Text>
+              <Text style={styles.conflictText}>
+                We found an optimal route that minimizes your total driving distance.
+              </Text>
               {optimalOrder.map((pid, idx) => {
                 const pkg = simPackages.find((p) => p.id === pid);
                 return pkg ? (
                   <View key={pid} style={styles.optimalOrderRow}>
-                    <View style={styles.optimalOrderBadge}><Text style={styles.optimalOrderBadgeText}>{idx + 1}</Text></View>
+                    <View style={styles.optimalOrderBadge}>
+                      <Text style={styles.optimalOrderBadgeText}>{idx + 1}</Text>
+                    </View>
                     <View style={styles.optimalOrderInfo}>
                       <Text style={styles.optimalOrderLabel}>{pkg.label}</Text>
                       <Text style={styles.optimalOrderAddr}>{pkg.dropoffAddress}</Text>
@@ -705,22 +1058,31 @@ export default function App() {
         </Modal>
 
         {/* Delivery confirm modal */}
-        <Modal visible={showDeliveryConfirm} transparent animationType="fade" onRequestClose={() => setShowDeliveryConfirm(false)}>
+        <Modal
+          visible={showDeliveryConfirm}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeliveryConfirm(false)}>
           <View style={styles.conflictOverlay}>
             <View style={styles.conflictModal}>
               <View style={styles.conflictHeader}>
                 <MaterialCommunityIcons name="package-down" size={24} color="#22c55e" />
                 <Text style={styles.conflictTitle}>Confirm Delivery</Text>
               </View>
-              {deliveryConfirmPkgId && (() => {
-                const pkg = simPackages.find((p) => p.id === deliveryConfirmPkgId);
-                return pkg ? (
-                  <>
-                    <Text style={styles.conflictText}>You've arrived at <Text style={{ fontWeight: "800" }}>{pkg.dropoffAddress}</Text>.</Text>
-                    <Text style={styles.conflictSuggestion}>Confirm to mark {pkg.label} as delivered and earn +{pkg.rewardPoints} pts.</Text>
-                  </>
-                ) : null;
-              })()}
+              {deliveryConfirmPkgId &&
+                (() => {
+                  const pkg = simPackages.find((p) => p.id === deliveryConfirmPkgId);
+                  return pkg ? (
+                    <>
+                      <Text style={styles.conflictText}>
+                        You've arrived at <Text style={{ fontWeight: "800" }}>{pkg.dropoffAddress}</Text>.
+                      </Text>
+                      <Text style={styles.conflictSuggestion}>
+                        Confirm to mark {pkg.label} as delivered and earn +{pkg.rewardPoints} pts.
+                      </Text>
+                    </>
+                  ) : null;
+                })()}
               <View style={styles.conflictActions}>
                 <Pressable style={styles.conflictAcceptBtn} onPress={handleConfirmDelivery}>
                   <Text style={styles.conflictAcceptText}>Deliver Package</Text>
@@ -734,27 +1096,43 @@ export default function App() {
         </Modal>
 
         {/* Package list modal */}
-        <Modal visible={showPackageList} transparent animationType="slide" onRequestClose={() => setShowPackageList(false)}>
+        <Modal
+          visible={showPackageList}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPackageList(false)}>
           <View style={styles.packageListOverlay}>
             <View style={styles.packageListModal}>
               <View style={styles.packageListHeader}>
-                <Text style={styles.packageListTitle}>Your Packages ({userPackageCount}/{MAX_PACKAGES_PER_DRIVER})</Text>
+                <Text style={styles.packageListTitle}>
+                  Your Packages ({userPackageCount}/{MAX_PACKAGES_PER_DRIVER})
+                </Text>
                 <Pressable onPress={() => setShowPackageList(false)} hitSlop={10}>
                   <MaterialCommunityIcons name="close" size={22} color="#64748b" />
                 </Pressable>
               </View>
               {userPackageIds.length === 0 ? (
-                <Text style={styles.packageListEmpty}>No packages picked up yet. Tap a blue marker on the map to pick one up.</Text>
+                <Text style={styles.packageListEmpty}>
+                  No packages picked up yet. Tap a blue marker on the map to pick one up.
+                </Text>
               ) : (
                 <FlatList
-                  data={userPackageIds.map((id) => simPackages.find((p) => p.id === id)).filter(Boolean) as SimPackage[]}
+                  data={
+                    userPackageIds.map((id) => simPackages.find((p) => p.id === id)).filter(Boolean) as SimPackage[]
+                  }
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => (
                     <View style={styles.packageListItem}>
                       <View style={styles.packageListItemHeader}>
                         <Text style={styles.packageListItemLabel}>{item.label}</Text>
-                        <View style={[styles.packageListStatusBadge, item.status === "in_transit" ? styles.packageListStatusTransit : null]}>
-                          <Text style={styles.packageListStatusText}>{item.status === "in_transit" ? "In Transit" : item.status}</Text>
+                        <View
+                          style={[
+                            styles.packageListStatusBadge,
+                            item.status === "in_transit" ? styles.packageListStatusTransit : null,
+                          ]}>
+                          <Text style={styles.packageListStatusText}>
+                            {item.status === "in_transit" ? "In Transit" : item.status}
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.packageListAddr}>Pickup: {item.pickupAddress}</Text>
@@ -762,7 +1140,12 @@ export default function App() {
                       <View style={styles.packageListItemFooter}>
                         <Text style={styles.packageListPts}>+{item.rewardPoints} pts</Text>
                         {item.status === "in_transit" && (
-                          <Pressable style={styles.packageListDropoffBtn} onPress={() => { handleDropoffPackage(item.id); setShowPackageList(false); }}>
+                          <Pressable
+                            style={styles.packageListDropoffBtn}
+                            onPress={() => {
+                              handleDropoffPackage(item.id);
+                              setShowPackageList(false);
+                            }}>
                             <Text style={styles.packageListDropoffText}>Deliver</Text>
                           </Pressable>
                         )}
@@ -775,31 +1158,94 @@ export default function App() {
           </View>
         </Modal>
 
+        <Modal
+          visible={!!selectedRedeemedVoucher}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSelectedRedeemedVoucher(null)}>
+          <Pressable style={styles.voucherSheetOverlay} onPress={() => setSelectedRedeemedVoucher(null)}>
+            <Pressable style={styles.voucherSheet} onPress={() => {}}>
+              <View style={styles.voucherSheetHandle} />
+              {selectedRedeemedVoucher ? (
+                <>
+                  <View style={styles.voucherSheetHeader}>
+                    <View style={styles.voucherSheetBrandRow}>
+                      <View
+                        style={[
+                          styles.voucherLogoWrap,
+                          styles.voucherSheetLogoWrap,
+                          { backgroundColor: selectedRedeemedVoucher.logoBackground },
+                        ]}>
+                        <MaterialCommunityIcons
+                          name={selectedRedeemedVoucher.logoIcon}
+                          size={24}
+                          color={selectedRedeemedVoucher.logoColor}
+                        />
+                      </View>
+                      <View style={styles.voucherSheetTitleBlock}>
+                        <Text style={styles.voucherSheetTitle}>{selectedRedeemedVoucher.title}</Text>
+                        <Text style={styles.voucherSheetPartner}>{selectedRedeemedVoucher.partner}</Text>
+                      </View>
+                    </View>
+                    <Pressable onPress={() => setSelectedRedeemedVoucher(null)} hitSlop={10}>
+                      <MaterialCommunityIcons name="close" size={22} color="#64748b" />
+                    </Pressable>
+                  </View>
+                  <Text style={styles.voucherSheetDescription}>{selectedRedeemedVoucher.description}</Text>
+                  <View style={styles.voucherQrCard}>
+                    <View style={styles.voucherQrGrid}>
+                      {mockQrPattern.map((row, rowIndex) => (
+                        <View key={`row-${rowIndex}`} style={styles.voucherQrRow}>
+                          {row.split("").map((cell, cellIndex) => (
+                            <View
+                              key={`cell-${rowIndex}-${cellIndex}`}
+                              style={[
+                                styles.voucherQrCell,
+                                cell === "1" ? styles.voucherQrCellFilled : styles.voucherQrCellEmpty,
+                              ]}
+                            />
+                          ))}
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={styles.voucherQrCaption}>Scan this QR code at checkout to redeem your voucher.</Text>
+                  </View>
+                </>
+              ) : null}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
         <View style={styles.content}>
           {activeTab === "dashboard" ? (
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               <View style={styles.heroCard}>
                 <Text style={styles.heroEyebrow}>Dashboard</Text>
                 <Text style={styles.heroTitle}>Your eco impact this week</Text>
-                <Text style={styles.heroText}>Keep riding sustainably to unlock more rewards and grow your streak.</Text>
+                <Text style={styles.heroText}>
+                  Keep riding sustainably to unlock more rewards and grow your streak.
+                </Text>
               </View>
 
-              <View style={styles.card}>
+              <View style={[styles.card, styles.flatCard]}>
                 <View style={styles.cardTitleRow}>
-                  <Text style={styles.cardTitle}>Points and rewards</Text>
+                  <Text style={styles.cardTitle}>Current points</Text>
                   <Pressable style={styles.rewardsLinkInline} onPress={() => setActiveTab("tracking")}>
-                    <Text style={styles.rewardsLinkText}>Go to Milestone</Text>
+                    <Text style={styles.rewardsLinkText}>Go to milestone</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={18} color="#0f5c45" />
                   </Pressable>
                 </View>
                 <View style={styles.trackingPointsRow}>
                   <Text style={styles.trackingPointsValue}>{currentPoints} pts</Text>
-                  <Text style={styles.trackingPointsGoal}>Next milestone: {rewardProgress.goal} pts</Text>
+                  {/* <Text style={styles.trackingPointsGoal}>Next milestone: {rewardProgress.goal} pts</Text> */}
                 </View>
                 <Text style={styles.trackingCurrentRank}>{currentHonor}</Text>
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: progressWidth }]} />
                 </View>
-                <Text style={styles.cardHint}>{Math.max(0, rewardProgress.goal - currentPoints)} more points until your next reward.</Text>
+                <Text style={styles.cardHint}>
+                  {Math.max(0, rewardProgress.goal - currentPoints)} more points until your next milestone.
+                </Text>
               </View>
 
               <View style={styles.streakCard}>
@@ -823,7 +1269,9 @@ export default function App() {
 
               <View style={styles.mapSectionHeader}>
                 <Text style={styles.mapSectionTitle}>Statistics</Text>
-                <Text style={styles.mapSectionSubtitle}>Track how your deliveries create a more sustainable map over time.</Text>
+                <Text style={styles.mapSectionSubtitle}>
+                  Track how your deliveries create a more sustainable map over time.
+                </Text>
               </View>
 
               <View style={styles.statsGrid}>
@@ -847,27 +1295,68 @@ export default function App() {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               <View style={styles.trackingHeroCard}>
                 <Text style={styles.heroEyebrow}>Tracking</Text>
-                <Text style={styles.heroTitle}>Honor progress</Text>
-                <Text style={styles.heroText}>Track your current points and see what each honor tier unlocks next.</Text>
+                <Text style={styles.heroTitle}>Sustainable progress</Text>
+                <Text style={styles.heroText}>
+                  Track your current points and see what each sustainable tier unlocks next.
+                </Text>
+              </View>
+              <View style={styles.currentTitlesCard}>
+                <Text style={styles.currentTitlesTitle}>Your current tier</Text>
+                <View
+                  style={[
+                    styles.currentTitleLogoWrap,
+                    { backgroundColor: `${currentTier.accentColor}20`, borderColor: `${currentTier.accentColor}35` },
+                  ]}>
+                  <MaterialCommunityIcons name={currentTier.icon} size={34} color={currentTier.accentColor} />
+                </View>
+                <View style={styles.currentTitleLabelRow}>
+                  <Text style={styles.currentTitleLabel}>{currentTier.title}</Text>
+                </View>
+                <View>
+                  <Text style={styles.currentTitleHint}>Scroll down to see your benefits</Text>
+                </View>
+                <Text style={styles.currentTitleOr}>OR</Text>
+                <Pressable onPress={() => setActiveTab("reward")}>
+                  <Text style={styles.currentTitleRewardLink}>See additional reward</Text>
+                </Pressable>
               </View>
               <View style={styles.trackingSectionHeader}>
-                <Text style={styles.trackingSectionTitle}>Honor titles</Text>
+                <Text style={styles.trackingSectionTitle}>Sustainable titles</Text>
               </View>
               {honorTiers.map((tier) => (
-                <View key={tier.id} style={[styles.card, tier.title === currentHonor ? styles.activeHonorCard : null, currentPoints < tier.pointsRequired ? styles.lockedHonorCard : null]}>
+                <View
+                  key={tier.id}
+                  style={[
+                    styles.card,
+                    tier.title === currentHonor ? styles.activeHonorCard : null,
+                    currentPoints >= tier.pointsRequired && tier.title !== currentHonor ? styles.pastHonorCard : null,
+                    currentPoints < tier.pointsRequired ? styles.lockedHonorCard : null,
+                  ]}>
                   <View style={styles.honorCard}>
                     <View style={styles.honorTopRow}>
                       <View style={[styles.honorIconWrap, { backgroundColor: `${tier.accentColor}20` }]}>
                         <MaterialCommunityIcons name={tier.icon} size={26} color={tier.accentColor} />
                       </View>
-                      {tier.title === currentHonor ? <Text style={styles.honorCurrentLabel}>Current</Text> : currentPoints < tier.pointsRequired ? <Text style={styles.honorLockLabel}>Locked</Text> : <View />}
+                      {tier.title === currentHonor ? (
+                        <Text style={styles.honorCurrentLabel}>Current</Text>
+                      ) : currentPoints < tier.pointsRequired ? (
+                        <Text style={styles.honorLockLabel}>Locked</Text>
+                      ) : currentPoints >= tier.pointsRequired ? (
+                        <Text style={styles.honorPastLabel}>Past</Text>
+                      ) : (
+                        <View />
+                      )}
                     </View>
                     <Text style={styles.honorTitle}>{tier.title}</Text>
                     <Text style={styles.honorPoints}>{tier.pointsRequired} pts</Text>
                     <View style={styles.honorBenefitsBlock}>
                       {tier.benefits.map((benefit) => (
                         <View key={benefit} style={styles.honorBenefitRow}>
-                          <MaterialCommunityIcons name="check" size={16} color="#0f5c45" />
+                          <MaterialCommunityIcons
+                            name="check"
+                            size={16}
+                            color={currentPoints < tier.pointsRequired ? "#94a3b8" : "#0f5c45"}
+                          />
                           <Text style={styles.honorBenefit}>{benefit}</Text>
                         </View>
                       ))}
@@ -890,14 +1379,14 @@ export default function App() {
                   <View style={styles.historySummaryStat}>
                     <View style={styles.historySummaryMetricRow}>
                       <MaterialCommunityIcons name="leaf" size={28} color="#ffffff" />
-                      <Text style={styles.historySummaryValue}>{currentPoints}</Text>
+                      <Text style={styles.historySummaryValue}>{mockPathSummary.totalPoints}</Text>
                     </View>
                     <Text style={styles.historySummaryLabel}>Total points</Text>
                   </View>
                   <View style={styles.historySummaryStat}>
                     <View style={styles.historySummaryMetricRow}>
                       <MaterialCommunityIcons name="map-marker" size={28} color="#ffffff" />
-                      <Text style={styles.historySummaryValue}>{totalCO2Saved.toFixed(1)}</Text>
+                      <Text style={styles.historySummaryValue}>{mockPathSummary.co2SavedKg}</Text>
                     </View>
                     <Text style={styles.historySummaryLabel}>kg CO2 saved</Text>
                   </View>
@@ -905,19 +1394,37 @@ export default function App() {
               </View>
               {tripHistory.map((trip) => (
                 <View key={trip.id} style={styles.historyTripCard}>
-                  <View style={styles.historyRoutePreview}><View style={styles.historyPathLine} /><View style={styles.historyPathStart} /><View style={styles.historyPathEnd} /></View>
+                  <View style={styles.historyRoutePreview}>
+                    <View style={styles.historyPathLine} />
+                    <View style={styles.historyPathStart} />
+                    <View style={styles.historyPathEnd} />
+                  </View>
                   <View style={styles.historyTripBody}>
                     <View style={styles.historyMetaRow}>
                       <View style={styles.historyMetaLeft}>
                         <MaterialCommunityIcons name="calendar-blank-outline" size={22} color="#64748b" />
-                        <Text style={styles.historyMetaText}>{trip.date} • {trip.time}</Text>
+                        <Text style={styles.historyMetaText}>
+                          {trip.date} • {trip.time}
+                        </Text>
                       </View>
-                      <View style={styles.historyVehicleBadge}><MaterialCommunityIcons name={trip.vehicleIcon} size={20} color="#ffffff" /></View>
+                      <View style={styles.historyVehicleBadge}>
+                        <MaterialCommunityIcons name={trip.vehicleIcon} size={20} color="#ffffff" />
+                      </View>
                     </View>
                     <View style={styles.historyStops}>
-                      <View style={styles.historyStopRow}><View style={[styles.historyStopIconWrap, styles.historyStartIconWrap]}><MaterialCommunityIcons name="map-marker-outline" size={18} color="#2563eb" /></View><Text style={styles.historyStopText}>{trip.from}</Text></View>
+                      <View style={styles.historyStopRow}>
+                        <View style={[styles.historyStopIconWrap, styles.historyStartIconWrap]}>
+                          <MaterialCommunityIcons name="map-marker-outline" size={18} color="#2563eb" />
+                        </View>
+                        <Text style={styles.historyStopText}>{trip.from}</Text>
+                      </View>
                       <View style={styles.historyConnector} />
-                      <View style={styles.historyStopRow}><View style={[styles.historyStopIconWrap, styles.historyEndIconWrap]}><MaterialCommunityIcons name="map-marker-outline" size={18} color="#ef4444" /></View><Text style={styles.historyStopText}>{trip.to}</Text></View>
+                      <View style={styles.historyStopRow}>
+                        <View style={[styles.historyStopIconWrap, styles.historyEndIconWrap]}>
+                          <MaterialCommunityIcons name="map-marker-outline" size={18} color="#ef4444" />
+                        </View>
+                        <Text style={styles.historyStopText}>{trip.to}</Text>
+                      </View>
                     </View>
                     <View style={styles.historyFooter}>
                       <View style={styles.historyImpactRow}>
@@ -935,8 +1442,17 @@ export default function App() {
                 <Text style={styles.cardTitle}>Points history</Text>
                 {allPointHistory.map((entry) => (
                   <View key={entry.id} style={styles.listItem}>
-                    <View><Text style={styles.listTitle}>{entry.title}</Text><Text style={styles.listSubtitle}>{entry.date}</Text></View>
-                    <Text style={[styles.historyPoints, entry.points.startsWith("+") ? styles.positivePoints : styles.negativePoints]}>{entry.points}</Text>
+                    <View>
+                      <Text style={styles.listTitle}>{entry.title}</Text>
+                      <Text style={styles.listSubtitle}>{entry.date}</Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.historyPoints,
+                        entry.points.startsWith("+") ? styles.positivePoints : styles.negativePoints,
+                      ]}>
+                      {entry.points}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -947,46 +1463,98 @@ export default function App() {
                 <Text style={styles.cardTitle}>Rewards</Text>
                 <View style={styles.rewardPointsSummaryRow}>
                   <MaterialCommunityIcons name="gift-outline" size={18} color="#16a34a" />
-                  <Text style={styles.rewardPointsSummary}>You have <Text style={styles.rewardPointsValue}>{currentPoints}</Text> points</Text>
+                  <Text style={styles.rewardPointsSummary}>
+                    You have <Text style={styles.rewardPointsValue}>{currentPoints}</Text> points
+                  </Text>
                 </View>
               </View>
               <View style={styles.rewardList}>
-                {vouchers.map((voucher) => (
-                  <View key={voucher.id} style={[styles.voucherCard, voucher.status === "lock" ? styles.voucherCardLocked : null, voucher.status === "redeemed" ? styles.voucherCardRedeemed : null]}>
+                {displayedVouchers.map((voucher) => (
+                  <Pressable
+                    key={voucher.id}
+                    disabled={voucher.status === "lock"}
+                    onPress={() => {
+                      if (voucher.status === "redeemed") setSelectedRedeemedVoucher(voucher);
+                    }}
+                    style={[
+                      styles.voucherCard,
+                      voucher.status === "lock" ? styles.voucherCardLocked : null,
+                      voucher.status === "redeemed" ? styles.voucherCardRedeemed : null,
+                    ]}>
                     <View style={[styles.voucherTopGlow, { backgroundColor: voucher.accentColor }]} />
                     <View style={styles.voucherHeader}>
                       <View style={styles.voucherBrandRow}>
-                        <View style={[styles.voucherLogoWrap, { backgroundColor: voucher.logoBackground }]}><MaterialCommunityIcons name={voucher.logoIcon} size={24} color={voucher.logoColor} /></View>
-                        <View style={styles.voucherTitleBlock}><Text style={styles.voucherTitle}>{voucher.title}</Text><Text style={styles.voucherPartner}>{voucher.partner}</Text></View>
+                        <View style={[styles.voucherLogoWrap, { backgroundColor: voucher.logoBackground }]}>
+                          <MaterialCommunityIcons name={voucher.logoIcon} size={24} color={voucher.logoColor} />
+                        </View>
+                        <View style={styles.voucherTitleBlock}>
+                          <Text style={styles.voucherTitle}>{voucher.title}</Text>
+                          <Text style={styles.voucherPartner}>{voucher.partner}</Text>
+                        </View>
                       </View>
-                      {voucher.status === "redeemed" ? <View style={styles.voucherStatusRedeemed}><MaterialCommunityIcons name="check-decagram" size={24} color="#0f7f4f" /></View> : voucher.status === "unlock" ? <View style={styles.voucherStatusAvailable}><MaterialCommunityIcons name="check-circle-outline" size={28} color="#22c55e" /></View> : <View style={styles.voucherStatusLocked}><MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" /></View>}
+                      {voucher.status === "redeemed" ? (
+                        <View style={styles.voucherStatusRedeemed}>
+                          <MaterialCommunityIcons name="check-decagram" size={24} color="#0f7f4f" />
+                        </View>
+                      ) : voucher.status === "unlock" ? (
+                        <View style={styles.voucherStatusAvailable}>
+                          <MaterialCommunityIcons name="check-circle-outline" size={28} color="#22c55e" />
+                        </View>
+                      ) : (
+                        <View style={styles.voucherStatusLocked}>
+                          <MaterialCommunityIcons name="lock-outline" size={18} color="#64748b" />
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.voucherDescription}>{voucher.description}</Text>
                     <View style={styles.voucherFooter}>
-                      <View style={styles.voucherPointsRow}><Text style={styles.voucherPointsLabel}>Required points:</Text><Text style={styles.voucherPointsValue}>{voucher.points} pts</Text></View>
-                      {voucher.status === "redeemed" ? <Text style={styles.voucherRedeemedLabel}>Redeemed</Text> : voucher.status === "unlock" ? <Pressable style={styles.redeemButton}><Text style={styles.redeemButtonText}>Redeem</Text></Pressable> : <View style={styles.voucherMissingWrap}><Text style={styles.voucherMissingText}>Need {voucher.points - currentPoints} more pts</Text></View>}
+                      <View style={styles.voucherPointsRow}>
+                        <Text style={styles.voucherPointsLabel}>Required points:</Text>
+                        <Text style={styles.voucherPointsValue}>{voucher.points} pts</Text>
+                      </View>
+                      {voucher.status === "redeemed" ? (
+                        <Text style={styles.voucherRedeemedLabel}>Redeemed</Text>
+                      ) : voucher.status === "unlock" ? (
+                        <Pressable style={styles.redeemButton} onPress={() => handleRedeemVoucher(voucher.id)}>
+                          <Text style={styles.redeemButtonText}>Redeem</Text>
+                        </Pressable>
+                      ) : (
+                        <View style={styles.voucherMissingWrap}>
+                          <Text style={styles.voucherMissingText}>
+                            Need {Math.max(0, voucher.points - currentPoints)} more pts
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </ScrollView>
           ) : activeTab === "profile" ? (
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               <View style={styles.profileHeroCard}>
-                <View style={styles.profileAvatar}><MaterialCommunityIcons name="account-outline" size={34} color="#ffffff" /></View>
+                <View style={styles.profileAvatar}>
+                  <MaterialCommunityIcons name="account-outline" size={34} color="#ffffff" />
+                </View>
                 <Text style={styles.profileHeroTitle}>Profile</Text>
-                <Text style={styles.profileHeroSubtitle}>Manage your account and review your sustainable activity.</Text>
+                <Text style={styles.profileHeroSubtitle}>
+                  Manage your account and review your sustainable activity.
+                </Text>
               </View>
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Account Detail</Text>
                 {profileDetails.map((detail, index) => (
-                  <View key={detail.id} style={[styles.profileDetailRow, index === 0 ? styles.profileDetailRowFirst : null]}>
+                  <View
+                    key={detail.id}
+                    style={[styles.profileDetailRow, index === 0 ? styles.profileDetailRowFirst : null]}>
                     <Text style={styles.profileDetailLabel}>{detail.label}</Text>
                     <Text style={styles.profileDetailValue}>{detail.value}</Text>
                   </View>
                 ))}
               </View>
-              <Pressable style={[styles.card, styles.profileHistoryCard]} onPress={() => setActiveTab("history")}><Text style={styles.cardTitle}>Trip History</Text></Pressable>
+              <Pressable style={[styles.card, styles.profileHistoryCard]} onPress={() => setActiveTab("history")}>
+                <Text style={styles.cardTitle}>Trip History</Text>
+              </Pressable>
               <Pressable style={styles.profileLogoutButton} onPress={handleLogout}>
                 <MaterialCommunityIcons name="logout" size={20} color="#ffffff" />
                 <Text style={styles.profileLogoutButtonText}>Log out</Text>
@@ -1000,11 +1568,23 @@ export default function App() {
                 style={StyleSheet.absoluteFillObject}
                 showsCompass
                 loadingEnabled
-                onPress={() => { if (markerJustPressed.current) { markerJustPressed.current = false; return; } setSelectedPackageId(null); setSelectedDriverId(null); }}
-              >
+                onPress={() => {
+                  if (markerJustPressed.current) {
+                    markerJustPressed.current = false;
+                    return;
+                  }
+                  setSelectedPackageId(null);
+                  setSelectedDriverId(null);
+                }}>
                 {/* User driver marker */}
                 {userDriver && (
-                  <Marker coordinate={userDriver.coordinate} onPress={() => { markerJustPressed.current = true; setSelectedDriverId("user-driver"); setSelectedPackageId(null); }}>
+                  <Marker
+                    coordinate={userDriver.coordinate}
+                    onPress={() => {
+                      markerJustPressed.current = true;
+                      setSelectedDriverId("user-driver");
+                      setSelectedPackageId(null);
+                    }}>
                     <View style={styles.driverMarkerWrap}>
                       <View style={[styles.driverMarker, { backgroundColor: userDriver.color }]}>
                         <MaterialCommunityIcons name="car" size={18} color="#ffffff" />
@@ -1016,7 +1596,14 @@ export default function App() {
 
                 {/* AI driver markers */}
                 {aiDrivers.map((d) => (
-                  <Marker key={d.id} coordinate={d.coordinate} onPress={() => { markerJustPressed.current = true; setSelectedDriverId(d.id); setSelectedPackageId(null); }}>
+                  <Marker
+                    key={d.id}
+                    coordinate={d.coordinate}
+                    onPress={() => {
+                      markerJustPressed.current = true;
+                      setSelectedDriverId(d.id);
+                      setSelectedPackageId(null);
+                    }}>
                     <View style={styles.driverMarkerWrap}>
                       <View style={[styles.driverMarker, { backgroundColor: d.color }]}>
                         <MaterialCommunityIcons name="truck-delivery" size={16} color="#ffffff" />
@@ -1110,34 +1697,80 @@ export default function App() {
                 )}
 
                 {/* Package markers (only non-delivered) */}
-                {simPackages.filter((p) => p.status !== "delivered").map((pkg) => (
-                  <Marker key={pkg.id} coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate} onPress={() => { markerJustPressed.current = true; setSelectedPackageId(pkg.id); setSelectedDriverId(null); }}>
-                    <View style={styles.packageMarkerWrap}>
-                      <View style={[styles.packageMarker, pkg.status === "in_transit" ? styles.packageMarkerDelivery : null, pkg.status === "assigned" ? styles.packageMarkerAssigned : null]}>
-                        <MaterialCommunityIcons name={pkg.status === "in_transit" ? "package-down" : "package-variant-closed"} size={18} color="#ffffff" />
+                {simPackages
+                  .filter((p) => p.status !== "delivered")
+                  .map((pkg) => (
+                    <Marker
+                      key={pkg.id}
+                      coordinate={pkg.status === "in_transit" ? pkg.dropoffCoordinate : pkg.pickupCoordinate}
+                      onPress={() => {
+                        markerJustPressed.current = true;
+                        setSelectedPackageId(pkg.id);
+                        setSelectedDriverId(null);
+                      }}>
+                      <View style={styles.packageMarkerWrap}>
+                        <View
+                          style={[
+                            styles.packageMarker,
+                            pkg.status === "in_transit" ? styles.packageMarkerDelivery : null,
+                            pkg.status === "assigned" ? styles.packageMarkerAssigned : null,
+                          ]}>
+                          <MaterialCommunityIcons
+                            name={pkg.status === "in_transit" ? "package-down" : "package-variant-closed"}
+                            size={18}
+                            color="#ffffff"
+                          />
+                        </View>
+                        <View
+                          style={[
+                            styles.packageMarkerTail,
+                            pkg.status === "in_transit" ? styles.packageMarkerTailDelivery : null,
+                            pkg.status === "assigned" ? styles.packageMarkerTailAssigned : null,
+                          ]}
+                        />
                       </View>
-                      <View style={[styles.packageMarkerTail, pkg.status === "in_transit" ? styles.packageMarkerTailDelivery : null, pkg.status === "assigned" ? styles.packageMarkerTailAssigned : null]} />
-                    </View>
-                  </Marker>
-                ))}
+                    </Marker>
+                  ))}
 
                 {/* Road-following polylines: user driver (remaining route only) */}
-                {userDriver && userDriver.routeWaypoints.length >= 2 && (userDriver.state === "to_dropoff" || userDriver.state === "to_pickup") && (() => {
-                  const ahead = remainingWaypoints(userDriver.routeWaypoints, userDriver.routeProgress);
-                  return ahead.length >= 2 ? <Polyline coordinates={ahead} strokeColor="#0f5c45" strokeWidth={3} lineDashPattern={[8, 6]} /> : null;
-                })()}
+                {userDriver &&
+                  userDriver.routeWaypoints.length >= 2 &&
+                  (userDriver.state === "to_dropoff" || userDriver.state === "to_pickup") &&
+                  (() => {
+                    const ahead = remainingWaypoints(userDriver.routeWaypoints, userDriver.routeProgress);
+                    return ahead.length >= 2 ? (
+                      <Polyline coordinates={ahead} strokeColor="#0f5c45" strokeWidth={3} lineDashPattern={[8, 6]} />
+                    ) : null;
+                  })()}
 
                 {/* Road-following polylines: AI drivers (remaining route only) */}
                 {aiDrivers.map((d) => {
                   if (d.routeWaypoints.length >= 2 && (d.state === "to_pickup" || d.state === "to_dropoff")) {
                     const ahead = remainingWaypoints(d.routeWaypoints, d.routeProgress);
-                    return ahead.length >= 2 ? <Polyline key={`line-${d.id}`} coordinates={ahead} strokeColor={d.color} strokeWidth={2} lineDashPattern={[6, 4]} /> : null;
+                    return ahead.length >= 2 ? (
+                      <Polyline
+                        key={`line-${d.id}`}
+                        coordinates={ahead}
+                        strokeColor={d.color}
+                        strokeWidth={2}
+                        lineDashPattern={[6, 4]}
+                      />
+                    ) : null;
                   }
                   return null;
                 })}
 
                 {/* ETA labels at midpoint of remaining route */}
-                {[...(userDriver && userDriver.routeWaypoints.length >= 2 && (userDriver.state === "to_pickup" || userDriver.state === "to_dropoff") ? [userDriver] : []), ...aiDrivers.filter((d) => d.routeWaypoints.length >= 2 && (d.state === "to_pickup" || d.state === "to_dropoff"))].map((d) => {
+                {[
+                  ...(userDriver &&
+                  userDriver.routeWaypoints.length >= 2 &&
+                  (userDriver.state === "to_pickup" || userDriver.state === "to_dropoff")
+                    ? [userDriver]
+                    : []),
+                  ...aiDrivers.filter(
+                    (d) => d.routeWaypoints.length >= 2 && (d.state === "to_pickup" || d.state === "to_dropoff"),
+                  ),
+                ].map((d) => {
                   const ahead = remainingWaypoints(d.routeWaypoints, d.routeProgress);
                   if (ahead.length < 2) return null;
                   const mid = polylineMidpoint(ahead);
@@ -1146,7 +1779,9 @@ export default function App() {
                   return (
                     <Marker key={`eta-${d.id}`} coordinate={mid} anchor={{ x: 0.5, y: 0.5 }}>
                       <View style={styles.etaPill}>
-                        <Text style={styles.etaText}>ETA: {etaMin}:{String(etaSec).padStart(2, "0")}</Text>
+                        <Text style={styles.etaText}>
+                          ETA: {etaMin}:{String(etaSec).padStart(2, "0")}
+                        </Text>
                       </View>
                     </Marker>
                   );
@@ -1158,7 +1793,13 @@ export default function App() {
                   if (!pkg) return null;
                   const isTarget = userDriver?.targetDropoffId === pid;
                   return (
-                    <Marker key={`drop-${pid}`} coordinate={pkg.dropoffCoordinate} onPress={() => { markerJustPressed.current = true; handleSwitchTarget(pid); }}>
+                    <Marker
+                      key={`drop-${pid}`}
+                      coordinate={pkg.dropoffCoordinate}
+                      onPress={() => {
+                        markerJustPressed.current = true;
+                        handleSwitchTarget(pid);
+                      }}>
                       <View style={styles.dropoffMarkerWrap}>
                         <View style={[styles.dropoffMarker, isTarget ? styles.dropoffMarkerActive : null]}>
                           <MaterialCommunityIcons name="flag-checkered" size={16} color="#ffffff" />
@@ -1190,7 +1831,9 @@ export default function App() {
               {/* Active pickups card */}
               <View style={styles.activePickupCard}>
                 <Text style={styles.activePickupTitle}>Active pickups</Text>
-                <Text style={styles.activePickupValue}>{userPackageCount}/{MAX_PACKAGES_PER_DRIVER}</Text>
+                <Text style={styles.activePickupValue}>
+                  {userPackageCount}/{MAX_PACKAGES_PER_DRIVER}
+                </Text>
               </View>
 
               {/* Package list button */}
@@ -1251,8 +1894,13 @@ export default function App() {
                   <MaterialCommunityIcons name={clock.isRunning ? "pause" : "play"} size={22} color="#ffffff" />
                 </Pressable>
                 {([1, 2, 5] as SimSpeed[]).map((s) => (
-                  <Pressable key={s} style={[styles.simSpeedBtn, clock.speed === s ? styles.simSpeedBtnActive : null]} onPress={() => clock.setSpeed(s)}>
-                    <Text style={[styles.simSpeedText, clock.speed === s ? styles.simSpeedTextActive : null]}>{s}x</Text>
+                  <Pressable
+                    key={s}
+                    style={[styles.simSpeedBtn, clock.speed === s ? styles.simSpeedBtnActive : null]}
+                    onPress={() => clock.setSpeed(s)}>
+                    <Text style={[styles.simSpeedText, clock.speed === s ? styles.simSpeedTextActive : null]}>
+                      {s}x
+                    </Text>
                   </Pressable>
                 ))}
                 <Text style={styles.simClock}>{formatSimTime(clock.elapsedMs)}</Text>
@@ -1262,52 +1910,62 @@ export default function App() {
               </View>
 
               {/* Driver detail card */}
-              {selectedDriverId && (() => {
-                const driver = simDrivers.find((d) => d.id === selectedDriverId);
-                if (!driver) return null;
-                const driverPkgs = driver.packages.map((pid) => simPackages.find((p) => p.id === pid)).filter(Boolean) as SimPackage[];
-                const pickupCount = driverPkgs.filter((p) => p.status === "assigned").length;
-                const deliveryCount = driverPkgs.filter((p) => p.status === "in_transit").length;
-                const stateLabel = driver.state === "idle" ? "Idle" : driver.state === "cooldown" ? "Resting..." : driver.state === "to_pickup" ? `Heading to pickup${driver.targetPackageId ? ` (${simPackages.find((p) => p.id === driver.targetPackageId)?.label ?? ""})` : ""}` : `Delivering${driver.targetDropoffId ? ` ${simPackages.find((p) => p.id === driver.targetDropoffId)?.label ?? ""}` : ""}`;
-                return (
-                  <View style={styles.driverDetailCard}>
-                    <View style={styles.driverDetailHeader}>
-                      <View style={[styles.driverDetailDot, { backgroundColor: driver.color }]} />
-                      <Text style={styles.driverDetailName}>{driver.name}</Text>
-                      <Pressable onPress={() => setSelectedDriverId(null)} hitSlop={10}>
-                        <MaterialCommunityIcons name="close" size={20} color="#64748b" />
-                      </Pressable>
+              {selectedDriverId &&
+                (() => {
+                  const driver = simDrivers.find((d) => d.id === selectedDriverId);
+                  if (!driver) return null;
+                  const driverPkgs = driver.packages
+                    .map((pid) => simPackages.find((p) => p.id === pid))
+                    .filter(Boolean) as SimPackage[];
+                  const pickupCount = driverPkgs.filter((p) => p.status === "assigned").length;
+                  const deliveryCount = driverPkgs.filter((p) => p.status === "in_transit").length;
+                  const stateLabel =
+                    driver.state === "idle"
+                      ? "Idle"
+                      : driver.state === "cooldown"
+                        ? "Resting..."
+                        : driver.state === "to_pickup"
+                          ? `Heading to pickup${driver.targetPackageId ? ` (${simPackages.find((p) => p.id === driver.targetPackageId)?.label ?? ""})` : ""}`
+                          : `Delivering${driver.targetDropoffId ? ` ${simPackages.find((p) => p.id === driver.targetDropoffId)?.label ?? ""}` : ""}`;
+                  return (
+                    <View style={styles.driverDetailCard}>
+                      <View style={styles.driverDetailHeader}>
+                        <View style={[styles.driverDetailDot, { backgroundColor: driver.color }]} />
+                        <Text style={styles.driverDetailName}>{driver.name}</Text>
+                        <Pressable onPress={() => setSelectedDriverId(null)} hitSlop={10}>
+                          <MaterialCommunityIcons name="close" size={20} color="#64748b" />
+                        </Pressable>
+                      </View>
+                      <View style={styles.driverDetailStateBadge}>
+                        <Text style={styles.driverDetailStateText}>{stateLabel}</Text>
+                      </View>
+                      <View style={styles.driverDetailStatsRow}>
+                        <View style={styles.driverDetailStat}>
+                          <Text style={styles.driverDetailStatValue}>{pickupCount}</Text>
+                          <Text style={styles.driverDetailStatLabel}>To pick up</Text>
+                        </View>
+                        <View style={styles.driverDetailStat}>
+                          <Text style={styles.driverDetailStatValue}>{deliveryCount}</Text>
+                          <Text style={styles.driverDetailStatLabel}>To deliver</Text>
+                        </View>
+                        <View style={styles.driverDetailStat}>
+                          <Text style={styles.driverDetailStatValue}>{driver.totalDistanceKm.toFixed(1)}</Text>
+                          <Text style={styles.driverDetailStatLabel}>km driven</Text>
+                        </View>
+                      </View>
+                      {driverPkgs.length > 0 && (
+                        <View style={styles.driverDetailPkgList}>
+                          {driverPkgs.map((p) => (
+                            <View key={p.id} style={styles.driverDetailPkgRow}>
+                              <Text style={styles.driverDetailPkgLabel}>{p.label}</Text>
+                              <Text style={styles.driverDetailPkgAddr}>{p.dropoffAddress}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
-                    <View style={styles.driverDetailStateBadge}>
-                      <Text style={styles.driverDetailStateText}>{stateLabel}</Text>
-                    </View>
-                    <View style={styles.driverDetailStatsRow}>
-                      <View style={styles.driverDetailStat}>
-                        <Text style={styles.driverDetailStatValue}>{pickupCount}</Text>
-                        <Text style={styles.driverDetailStatLabel}>To pick up</Text>
-                      </View>
-                      <View style={styles.driverDetailStat}>
-                        <Text style={styles.driverDetailStatValue}>{deliveryCount}</Text>
-                        <Text style={styles.driverDetailStatLabel}>To deliver</Text>
-                      </View>
-                      <View style={styles.driverDetailStat}>
-                        <Text style={styles.driverDetailStatValue}>{driver.totalDistanceKm.toFixed(1)}</Text>
-                        <Text style={styles.driverDetailStatLabel}>km driven</Text>
-                      </View>
-                    </View>
-                    {driverPkgs.length > 0 && (
-                      <View style={styles.driverDetailPkgList}>
-                        {driverPkgs.map((p) => (
-                          <View key={p.id} style={styles.driverDetailPkgRow}>
-                            <Text style={styles.driverDetailPkgLabel}>{p.label}</Text>
-                            <Text style={styles.driverDetailPkgAddr}>{p.dropoffAddress}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                );
-              })()}
+                  );
+                })()}
 
               {/* Selected package detail card */}
               {!selectedDriverId && selectedPackage && selectedPackage.status !== "delivered" ? (
@@ -1326,9 +1984,13 @@ export default function App() {
                       <Text style={styles.packagePickupButtonText}>Pick Up</Text>
                     </Pressable>
                   ) : selectedPackage.status === "waiting" && !canPickupMore ? (
-                    <View style={styles.packageLimitBadge}><Text style={styles.packageLimitBadgeText}>Pickup limit reached ({MAX_PACKAGES_PER_DRIVER})</Text></View>
+                    <View style={styles.packageLimitBadge}>
+                      <Text style={styles.packageLimitBadgeText}>Pickup limit reached ({MAX_PACKAGES_PER_DRIVER})</Text>
+                    </View>
                   ) : selectedPackage.status === "in_transit" && selectedPackage.assignedDriverId === "user-driver" ? (
-                    <Pressable style={[styles.packagePickupButton, { backgroundColor: "#2563eb" }]} onPress={() => handleDropoffPackage(selectedPackage.id)}>
+                    <Pressable
+                      style={[styles.packagePickupButton, { backgroundColor: "#2563eb" }]}
+                      onPress={() => handleDropoffPackage(selectedPackage.id)}>
                       <Text style={styles.packagePickupButtonText}>Confirm Delivery</Text>
                     </Pressable>
                   ) : selectedPackage.status === "in_transit" ? (
@@ -1336,7 +1998,12 @@ export default function App() {
                   ) : selectedPackage.status === "assigned" && selectedPackage.assignedDriverId === "user-driver" ? (
                     <View style={styles.packageTakenBadge}><Text style={styles.packageTakenBadgeText}>Heading to pickup</Text></View>
                   ) : selectedPackage.status === "assigned" ? (
-                    <View style={styles.packageTakenBadge}><Text style={styles.packageTakenBadgeText}>Assigned to {simDrivers.find((d) => d.id === selectedPackage.assignedDriverId)?.name ?? "a driver"}</Text></View>
+                    <View style={styles.packageTakenBadge}>
+                      <Text style={styles.packageTakenBadgeText}>
+                        Assigned to{" "}
+                        {simDrivers.find((d) => d.id === selectedPackage.assignedDriverId)?.name ?? "a driver"}
+                      </Text>
+                    </View>
                   ) : null}
                 </View>
               ) : null}
@@ -1345,17 +2012,33 @@ export default function App() {
         </View>
 
         <View style={styles.tabBar}>
-          <TabButton icon="view-dashboard-outline" isActive={activeTab === "dashboard"} onPress={() => setActiveTab("dashboard")} />
+          <TabButton
+            icon="view-dashboard-outline"
+            isActive={activeTab === "dashboard"}
+            onPress={() => setActiveTab("dashboard")}
+          />
           <TabButton icon="map-marker-outline" isActive={activeTab === "map"} onPress={() => setActiveTab("map")} />
-          <TabButton icon="gift-outline" isActive={activeTab === "reward"} onPress={() => setActiveTab("reward")} />
-          <TabButton icon="account-outline" isActive={activeTab === "profile"} onPress={() => setActiveTab("profile")} />
+          <TabButton
+            icon="progress-star"
+            isActive={activeTab === "tracking"}
+            onPress={() => setActiveTab("tracking")}
+          />
+          <TabButton
+            icon="account-outline"
+            isActive={activeTab === "profile"}
+            onPress={() => setActiveTab("profile")}
+          />
         </View>
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
-type TabButtonProps = { icon: ComponentProps<typeof MaterialCommunityIcons>["name"]; isActive: boolean; onPress: () => void };
+type TabButtonProps = {
+  icon: ComponentProps<typeof MaterialCommunityIcons>["name"];
+  isActive: boolean;
+  onPress: () => void;
+};
 
 function TabButton({ icon, isActive, onPress }: TabButtonProps) {
   return (
@@ -1371,10 +2054,47 @@ const styles = StyleSheet.create({
   appHeaderRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   appHeaderTitles: { flex: 1 },
   appHeaderActions: { alignItems: "flex-end" },
-  notificationBell: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#e8f7ef", alignItems: "center", justifyContent: "center", position: "relative" },
-  notificationDot: { position: "absolute", top: 7, right: 7, width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444" },
-  driverNoticeOverlay: { flex: 1, backgroundColor: "transparent", justifyContent: "flex-start", alignItems: "flex-end", paddingTop: 60, paddingRight: 20, paddingLeft: 20 },
-  driverNoticeModal: { width: 240, backgroundColor: "#ffffff", borderRadius: 18, borderWidth: 2, borderColor: "#e2e8f0", paddingHorizontal: 14, paddingVertical: 14, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  notificationBell: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#e8f7ef",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#ef4444",
+  },
+  driverNoticeOverlay: {
+    flex: 1,
+    backgroundColor: "transparent",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 60,
+    paddingRight: 20,
+    paddingLeft: 20,
+  },
+  driverNoticeModal: {
+    width: 240,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
   driverNoticeHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   driverNoticeTitle: { fontSize: 15, fontWeight: "800", color: "#0f172a" },
   driverNoticeCount: { fontSize: 40, fontWeight: "800", color: "#0f5c45", marginBottom: 4 },
@@ -1382,19 +2102,57 @@ const styles = StyleSheet.create({
   loginKeyboardView: { flex: 1 },
   loginScrollContent: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 32 },
   loginBrandBlock: { alignItems: "center", marginBottom: 28 },
-  loginLogoCircle: { width: 88, height: 88, borderRadius: 44, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center", marginBottom: 16, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3 },
+  loginLogoCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
   loginAppTitle: { fontSize: 36, fontWeight: "800", color: "#0b3d2e" },
   loginTagline: { marginTop: 8, fontSize: 16, color: "#4d6b61", textAlign: "center" },
-  loginCard: { backgroundColor: "#ffffff", borderRadius: 24, padding: 24, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4 },
+  loginCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
   loginCardTitle: { fontSize: 22, fontWeight: "800", color: "#0f172a", marginBottom: 8 },
   loginInfoBlock: { marginBottom: 20, gap: 10 },
   loginDisclaimer: { fontSize: 13, lineHeight: 19, color: "#64748b" },
   loginRules: { fontSize: 14, lineHeight: 20, color: "#475569" },
   loginRulesLabel: { fontWeight: "800", color: "#334155" },
   loginLabel: { fontSize: 13, fontWeight: "700", color: "#475569", marginBottom: 8 },
-  loginInput: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 14, paddingHorizontal: 16, paddingVertical: Platform.OS === "ios" ? 14 : 12, fontSize: 16, color: "#0f172a", marginBottom: 16, backgroundColor: "#f8fafc" },
+  loginInput: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === "ios" ? 14 : 12,
+    fontSize: 16,
+    color: "#0f172a",
+    marginBottom: 16,
+    backgroundColor: "#f8fafc",
+  },
   loginErrorText: { fontSize: 14, fontWeight: "600", color: "#b91c1c", marginBottom: 12 },
-  loginButton: { backgroundColor: "#0f5c45", borderRadius: 16, paddingVertical: 16, alignItems: "center", marginTop: 4 },
+  loginButton: {
+    backgroundColor: "#0f5c45",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 4,
+  },
   loginButtonText: { fontSize: 16, fontWeight: "800", color: "#ffffff" },
   appTitle: { fontSize: 32, fontWeight: "800", color: "#0b3d2e" },
   appSubtitle: { marginTop: 4, fontSize: 15, color: "#4d6b61" },
@@ -1403,29 +2161,92 @@ const styles = StyleSheet.create({
   heroCard: { backgroundColor: "#0f5c45", borderRadius: 24, padding: 20 },
   trackingHeroCard: { backgroundColor: "#0f5c45", borderRadius: 24, padding: 20 },
   profileHeroCard: { backgroundColor: "#0f5c45", borderRadius: 24, padding: 24, alignItems: "flex-start" },
-  profileAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  profileAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
   profileHeroTitle: { fontSize: 28, fontWeight: "800", color: "#ffffff", marginBottom: 8 },
   profileHeroSubtitle: { fontSize: 15, lineHeight: 22, color: "#dff8ea" },
   historyScreenHeader: { paddingTop: 4 },
   historyScreenTitle: { fontSize: 30, fontWeight: "800", color: "#0f172a" },
-  historySummaryCard: { backgroundColor: "#20b455", borderRadius: 30, padding: 18, shadowColor: "#15803d", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 20, elevation: 5 },
+  historySummaryCard: {
+    backgroundColor: "#20b455",
+    borderRadius: 30,
+    padding: 18,
+    shadowColor: "#15803d",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 5,
+  },
   historySummaryTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 },
   historySummaryTitle: { fontSize: 18, fontWeight: "800", color: "#ffffff" },
   historySummaryStats: { flexDirection: "row", gap: 14 },
   historySummaryStat: { flex: 1, backgroundColor: "rgba(255,255,255,0.22)", borderRadius: 24, padding: 18 },
   historySummaryMetricRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
-  historySummaryValue: { fontSize: 38, fontWeight: "800", color: "#ffffff" },
+  historySummaryValue: { fontSize: 30, fontWeight: "800", color: "#ffffff" },
   historySummaryLabel: { fontSize: 16, color: "#f0fff4" },
-  historyTripCard: { backgroundColor: "#ffffff", borderRadius: 28, overflow: "hidden", shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3 },
+  historyTripCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
   historyRoutePreview: { height: 150, backgroundColor: "#eef7ff", position: "relative" },
-  historyPathLine: { position: "absolute", left: 72, right: 70, top: 66, borderTopWidth: 4, borderStyle: "dashed", borderColor: "#3fbf58", transform: [{ rotate: "-4deg" }] },
-  historyPathStart: { position: "absolute", left: 58, top: 61, width: 26, height: 12, borderRadius: 999, backgroundColor: "#3b82f6" },
-  historyPathEnd: { position: "absolute", right: 54, top: 58, width: 26, height: 12, borderRadius: 999, backgroundColor: "#ef4444" },
+  historyPathLine: {
+    position: "absolute",
+    left: 72,
+    right: 70,
+    top: 66,
+    borderTopWidth: 4,
+    borderStyle: "dashed",
+    borderColor: "#3fbf58",
+    transform: [{ rotate: "-4deg" }],
+  },
+  historyPathStart: {
+    position: "absolute",
+    left: 58,
+    top: 61,
+    width: 26,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: "#3b82f6",
+  },
+  historyPathEnd: {
+    position: "absolute",
+    right: 54,
+    top: 58,
+    width: 26,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: "#ef4444",
+  },
   historyTripBody: { padding: 20 },
   historyMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
   historyMetaLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   historyMetaText: { fontSize: 15, color: "#475569" },
-  historyVehicleBadge: { width: 58, height: 58, borderRadius: 29, backgroundColor: "#22c55e", alignItems: "center", justifyContent: "center", shadowColor: "#16a34a", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 4 },
+  historyVehicleBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#22c55e",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   historyStops: { marginBottom: 20 },
   historyStopRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   historyStopIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
@@ -1433,29 +2254,99 @@ const styles = StyleSheet.create({
   historyEndIconWrap: { backgroundColor: "#fee2e2" },
   historyConnector: { width: 2, height: 28, backgroundColor: "#cbd5e1", marginLeft: 17, marginVertical: 4 },
   historyStopText: { fontSize: 17, fontWeight: "700", color: "#0f172a" },
-  historyFooter: { borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  historyFooter: {
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   historyImpactRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10 },
   historyImpactPoints: { fontSize: 15, fontWeight: "800", color: "#16a34a" },
   historyImpactText: { fontSize: 15, color: "#334155" },
   historyDuration: { fontSize: 15, color: "#64748b" },
-  heroEyebrow: { fontSize: 13, fontWeight: "700", color: "#b8f2d6", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
+  heroEyebrow: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#b8f2d6",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
   heroTitle: { fontSize: 24, fontWeight: "800", color: "#ffffff", marginBottom: 8 },
   heroText: { fontSize: 15, lineHeight: 22, color: "#e6fff3" },
-  card: { backgroundColor: "#ffffff", borderRadius: 22, padding: 18, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3 },
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  flatCard: {
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
   cardTitle: { fontSize: 18, fontWeight: "700", color: "#173127" },
-  cardTitleRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 14 },
-  trackingPointsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 14,
+  },
+  trackingPointsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 12,
+  },
   trackingPointsValue: { fontSize: 30, fontWeight: "800", color: "#0f5c45" },
   trackingPointsGoal: { fontSize: 14, color: "#64748b" },
   trackingCurrentRank: { fontSize: 16, fontWeight: "800", color: "#15803d", marginBottom: 12 },
   rewardsLinkInline: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  rewardsLinkText: { fontSize: 14, fontWeight: "700", color: "#0f5c45", textDecorationLine: "underline" },
+  rewardsLinkText: { fontSize: 16, fontWeight: "700", color: "#0f5c45", textDecorationLine: "underline" },
   progressTrack: { height: 14, backgroundColor: "#dceee6", borderRadius: 999, overflow: "hidden", marginBottom: 10 },
   progressFill: { height: "100%", borderRadius: 999, backgroundColor: "#20b26b" },
   cardHint: { fontSize: 14, lineHeight: 20, color: "#587166" },
-  streakCard: { position: "relative", overflow: "hidden", borderRadius: 28, paddingHorizontal: 22, paddingVertical: 26, backgroundColor: "#ff5f12", shadowColor: "#bc3b15", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 5 },
-  streakGlowLarge: { position: "absolute", right: -40, top: -20, width: 220, height: 220, borderRadius: 999, backgroundColor: "#ff3d34", opacity: 0.75 },
-  streakGlowSmall: { position: "absolute", right: 90, bottom: -70, width: 180, height: 180, borderRadius: 999, backgroundColor: "#ff7b1a", opacity: 0.35 },
+  streakCard: {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
+    backgroundColor: "#ff5f12",
+    shadowColor: "#bc3b15",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 5,
+  },
+  streakGlowLarge: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: "#ff3d34",
+    opacity: 0.75,
+  },
+  streakGlowSmall: {
+    position: "absolute",
+    right: 90,
+    bottom: -70,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: "#ff7b1a",
+    opacity: 0.35,
+  },
   streakHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20 },
   streakCopy: { flex: 1 },
   streakLabel: { fontSize: 16, fontWeight: "500", color: "#fff5ef", marginBottom: 14 },
@@ -1463,34 +2354,109 @@ const styles = StyleSheet.create({
   streakValue: { fontSize: 52, fontWeight: "800", color: "#ffffff", lineHeight: 56 },
   streakUnit: { fontSize: 24, fontWeight: "500", color: "#ffffff", marginTop: 8 },
   streakMessage: { fontSize: 16, fontWeight: "500", color: "#fff5ef" },
-  streakIconBadge: { width: 96, height: 96, borderRadius: 48, backgroundColor: "rgba(255, 214, 204, 0.28)", alignItems: "center", justifyContent: "center" },
-  listItem: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#edf4ef" },
+  streakIconBadge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "rgba(255, 214, 204, 0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  listItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#edf4ef",
+  },
   listTitle: { fontSize: 15, fontWeight: "700", color: "#173127" },
   listSubtitle: { marginTop: 4, fontSize: 13, color: "#6c857b" },
-  profileDetailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: "#edf4ef" },
+  profileDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#edf4ef",
+  },
   profileDetailRowFirst: { paddingTop: 0, borderTopWidth: 0 },
   profileDetailLabel: { fontSize: 14, color: "#6c857b" },
   profileDetailValue: { fontSize: 15, fontWeight: "700", color: "#173127" },
   profileHistoryCard: { gap: 14 },
-  voucherCard: { position: "relative", overflow: "hidden", backgroundColor: "#ffffff", borderRadius: 28, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16, marginTop: 12, borderWidth: 1, borderColor: "#e7edf2", shadowColor: "#0f172a", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+  voucherCard: {
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#ffffff",
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e7edf2",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   voucherCardLocked: { backgroundColor: "#f7f8fa", opacity: 0.88 },
   voucherCardRedeemed: { backgroundColor: "#ffffff" },
   voucherTopGlow: { position: "absolute", top: 0, left: 0, right: 0, height: 10 },
-  voucherHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 },
+  voucherHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 12,
+  },
   voucherBrandRow: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 12 },
   voucherLogoWrap: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   voucherTitleBlock: { flex: 1 },
   voucherTitle: { fontSize: 16, fontWeight: "800", color: "#0f172a", marginBottom: 4 },
   voucherPartner: { fontSize: 14, color: "#64748b" },
-  voucherStatusAvailable: { flexDirection: "row", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 999, backgroundColor: "#ffffff" },
-  voucherStatusRedeemed: { flexDirection: "row", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 999, backgroundColor: "#ffffff" },
-  voucherStatusLocked: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#ffffff", width: 34, height: 34, borderRadius: 999 },
+  voucherStatusAvailable: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+  },
+  voucherStatusRedeemed: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+  },
+  voucherStatusLocked: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+  },
   voucherDescription: { fontSize: 14, lineHeight: 22, color: "#334155", marginBottom: 14, marginLeft: 50 },
   voucherFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   voucherPointsRow: { flexDirection: "row", alignItems: "baseline", gap: 6, flexWrap: "wrap" },
   voucherPointsLabel: { fontSize: 14, fontWeight: "500", color: "#334155" },
   voucherPointsValue: { fontSize: 14, fontWeight: "800", color: "#0f172a" },
-  redeemButton: { backgroundColor: "#198754", borderRadius: 14, paddingHorizontal: 18, paddingVertical: 11, minWidth: 108, alignItems: "center" },
+  redeemButton: {
+    backgroundColor: "#198754",
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    minWidth: 108,
+    alignItems: "center",
+  },
   redeemButtonText: { fontSize: 14, fontWeight: "800", color: "#ffffff" },
   voucherMissingWrap: { backgroundColor: "#eef2f6", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
   voucherMissingText: { fontSize: 13, fontWeight: "700", color: "#64748b" },
@@ -1499,15 +2465,127 @@ const styles = StyleSheet.create({
   rewardPointsSummary: { fontSize: 15, fontWeight: "600", color: "#587166" },
   rewardPointsValue: { fontWeight: "800", color: "#16a34a" },
   rewardList: { gap: 0 },
+  voucherSheetOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15, 23, 42, 0.28)" },
+  voucherSheet: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  voucherSheetHandle: {
+    alignSelf: "center",
+    width: 56,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "#cbd5e1",
+    marginBottom: 18,
+  },
+  voucherSheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    marginBottom: 10,
+  },
+  voucherSheetBrandRow: { flex: 1, flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  voucherSheetLogoWrap: { width: 46, height: 46, borderRadius: 12 },
+  voucherSheetTitleBlock: { flex: 1 },
+  voucherSheetTitle: { fontSize: 22, fontWeight: "800", color: "#0f172a", marginBottom: 4 },
+  voucherSheetPartner: { fontSize: 15, fontWeight: "700", color: "#0f5c45" },
+  voucherSheetDescription: { fontSize: 15, lineHeight: 22, color: "#475569", marginBottom: 20 },
+  voucherQrCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 20,
+    alignItems: "center",
+  },
+  voucherQrGrid: { backgroundColor: "#ffffff", padding: 10, borderRadius: 12, borderWidth: 1, borderColor: "#e2e8f0" },
+  voucherQrRow: { flexDirection: "row" },
+  voucherQrCell: { width: 16, height: 16 },
+  voucherQrCellFilled: { backgroundColor: "#111827" },
+  voucherQrCellEmpty: { backgroundColor: "#ffffff" },
+  voucherQrCaption: { fontSize: 13, lineHeight: 20, color: "#64748b", textAlign: "center", marginTop: 14 },
+  currentTitlesCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#dcfce7",
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+    alignItems: "center",
+  },
+  currentTitlesTitle: { fontSize: 20, fontWeight: "800", color: "#0f172a", marginBottom: 18 },
+  currentTitleLogoWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  currentTitleLabelRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  currentTitleDot: { width: 10, height: 10, borderRadius: 999 },
+  currentTitleLabel: { fontSize: 18, fontWeight: "800", color: "#0f172a", textAlign: "center" },
+  currentTitleHint: { fontSize: 12, color: "#6b7280", textAlign: "center", marginTop: 8 },
+  currentTitleOr: { fontSize: 12, fontWeight: "700", color: "#9ca3af", textAlign: "center", marginTop: 10 },
+  currentTitleRewardLink: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0f5c45",
+    textAlign: "center",
+    marginTop: 6,
+    textDecorationLine: "underline",
+  },
   trackingSectionHeader: { paddingTop: 4 },
   trackingSectionTitle: { fontSize: 28, fontWeight: "800", color: "#0f172a" },
-  activeHonorCard: { borderWidth: 2, borderColor: "#0f5c45", backgroundColor: "#fffbea" },
+  activeHonorCard: { borderWidth: 2, borderColor: "#facc15", backgroundColor: "#fffbea" },
+  pastHonorCard: { backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#bbf7d0" },
   lockedHonorCard: { backgroundColor: "#f8fafc", opacity: 0.58 },
   honorCard: { gap: 14 },
   honorTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
   honorIconWrap: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  honorCurrentLabel: { fontSize: 13, fontWeight: "800", color: "#fff", backgroundColor: "#2b9348", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginTop: -4, marginRight: -4 },
-  honorLockLabel: { fontSize: 13, fontWeight: "800", color: "#64748b", backgroundColor: "#e5e7eb", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginTop: -4, marginRight: -4 },
+  honorCurrentLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#a16207",
+    backgroundColor: "#fef08a",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: -4,
+    marginRight: -4,
+  },
+  honorLockLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#64748b",
+    backgroundColor: "#e5e7eb",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: -4,
+    marginRight: -4,
+  },
+  honorPastLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#166534",
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: -4,
+    marginRight: -4,
+  },
   honorTitle: { fontSize: 16, fontWeight: "800", color: "#0f172a" },
   honorPoints: { fontSize: 14, fontWeight: "700", color: "#475569" },
   honorBenefitsBlock: { gap: 4 },
@@ -1520,8 +2598,26 @@ const styles = StyleSheet.create({
   mapSectionTitle: { fontSize: 30, fontWeight: "800", color: "#0b3d2e", marginBottom: 6 },
   mapSectionSubtitle: { fontSize: 15, lineHeight: 22, color: "#5c786d" },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 16 },
-  statCard: { width: "47%", minHeight: 190, backgroundColor: "#ffffff", borderRadius: 24, padding: 18, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3 },
-  statIconWrap: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 22 },
+  statCard: {
+    width: "47%",
+    minHeight: 190,
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  statIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 22,
+  },
   statValue: { fontSize: 36, fontWeight: "800", color: "#0f172a", marginBottom: 8 },
   statLabel: { fontSize: 16, lineHeight: 23, color: "#334e68", marginBottom: 16 },
   statTrendRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 4, marginTop: "auto" },
@@ -1529,13 +2625,49 @@ const styles = StyleSheet.create({
   statTrendPeriod: { fontSize: 15, color: "#64748b" },
   mapWrapper: { flex: 1, backgroundColor: "#f4f7f2", position: "relative" },
   driverMarkerWrap: { alignItems: "center" },
-  driverMarker: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#0f5c45", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#ffffff" },
-  driverMarkerTail: { width: 12, height: 12, backgroundColor: "#0f5c45", borderBottomWidth: 3, borderRightWidth: 3, borderColor: "#ffffff", transform: [{ rotate: "45deg" }], marginTop: -7 },
+  driverMarker: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#0f5c45",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#ffffff",
+  },
+  driverMarkerTail: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#0f5c45",
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: "#ffffff",
+    transform: [{ rotate: "45deg" }],
+    marginTop: -7,
+  },
   packageMarkerWrap: { alignItems: "center" },
-  packageMarker: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#60a5fa", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#ffffff" },
+  packageMarker: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#60a5fa",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#ffffff",
+  },
   packageMarkerDelivery: { backgroundColor: "#f59e0b" },
   packageMarkerAssigned: { backgroundColor: "#a78bfa" },
-  packageMarkerTail: { width: 12, height: 12, backgroundColor: "#60a5fa", borderBottomWidth: 3, borderRightWidth: 3, borderColor: "#ffffff", transform: [{ rotate: "45deg" }], marginTop: -7 },
+  packageMarkerTail: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#60a5fa",
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: "#ffffff",
+    transform: [{ rotate: "45deg" }],
+    marginTop: -7,
+  },
   packageMarkerTailDelivery: { backgroundColor: "#f59e0b" },
   packageMarkerTailAssigned: { backgroundColor: "#a78bfa" },
   dropoffMarkerWrap: { alignItems: "center" },
@@ -1554,7 +2686,23 @@ const styles = StyleSheet.create({
   activePickupCard: { position: "absolute", top: 20, left: 20, backgroundColor: "rgba(255, 255, 255, 0.96)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   activePickupTitle: { fontSize: 12, fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   activePickupValue: { fontSize: 22, fontWeight: "800", color: "#0f5c45" },
-  packageListBtn: { position: "absolute", top: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.96)", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  packageListBtn: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
   packageListBtnText: { fontSize: 13, fontWeight: "700", color: "#0f5c45" },
   transferStoryCard: { position: "absolute", top: 96, left: 20, right: 20, backgroundColor: "rgba(255,255,255,0.98)", borderRadius: 24, padding: 16, borderWidth: 1, borderColor: "#dbeafe", shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 6 },
   transferStoryHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
@@ -1578,30 +2726,120 @@ const styles = StyleSheet.create({
   packageDetailTitle: { flex: 1, fontSize: 18, fontWeight: "800", color: "#0f172a" },
   packageDetailText: { fontSize: 14, lineHeight: 21, color: "#475569", marginBottom: 6 },
   packageDetailPoints: { fontSize: 14, fontWeight: "800", color: "#0f5c45" },
-  packagePickupButton: { marginTop: 14, backgroundColor: "#0f5c45", borderRadius: 16, paddingVertical: 14, alignItems: "center" },
+  packagePickupButton: {
+    marginTop: 14,
+    backgroundColor: "#0f5c45",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
   packagePickupButtonText: { fontSize: 15, fontWeight: "800", color: "#ffffff" },
-  packageDeliveryBadge: { marginTop: 14, alignSelf: "flex-start", backgroundColor: "#dcfce7", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  packageDeliveryBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#dcfce7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   packageDeliveryBadgeText: { fontSize: 13, fontWeight: "800", color: "#0f5c45" },
-  packageTakenBadge: { marginTop: 14, alignSelf: "flex-start", backgroundColor: "#f3e8ff", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  packageTakenBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#f3e8ff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   packageTakenBadgeText: { fontSize: 13, fontWeight: "800", color: "#7c3aed" },
-  packageLimitBadge: { marginTop: 14, alignSelf: "flex-start", backgroundColor: "#fee2e2", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  packageLimitBadge: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    backgroundColor: "#fee2e2",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   packageLimitBadgeText: { fontSize: 13, fontWeight: "800", color: "#b91c1c" },
-  profileLogoutButton: { backgroundColor: "#c2410c", borderRadius: 18, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 4 },
+  profileLogoutButton: {
+    backgroundColor: "#c2410c",
+    borderRadius: 18,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 4,
+  },
   profileLogoutButtonText: { fontSize: 16, fontWeight: "800", color: "#ffffff" },
 
   // Sim controls
-  simControlBar: { position: "absolute", bottom: 14, left: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.96)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 10, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 14, elevation: 5 },
-  simBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#0f5c45", alignItems: "center", justifyContent: "center" },
+  simControlBar: {
+    position: "absolute",
+    bottom: 14,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  simBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#0f5c45",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   simSpeedBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: "#edf5f0" },
   simSpeedBtnActive: { backgroundColor: "#0f5c45" },
   simSpeedText: { fontSize: 13, fontWeight: "800", color: "#0f5c45" },
   simSpeedTextActive: { color: "#ffffff" },
-  simClock: { flex: 1, textAlign: "right", fontSize: 16, fontWeight: "800", color: "#0f172a", fontVariant: ["tabular-nums"] },
-  simResetBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#edf5f0", alignItems: "center", justifyContent: "center" },
+  simClock: {
+    flex: 1,
+    textAlign: "right",
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+    fontVariant: ["tabular-nums"],
+  },
+  simResetBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#edf5f0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   // Conflict modal
-  conflictOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.4)", paddingHorizontal: 24 },
-  conflictModal: { width: "100%", backgroundColor: "#ffffff", borderRadius: 24, padding: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 },
+  conflictOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 24,
+  },
+  conflictModal: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
   conflictHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
   conflictTitle: { fontSize: 20, fontWeight: "800", color: "#0f172a" },
   conflictText: { fontSize: 15, lineHeight: 22, color: "#475569", marginBottom: 16 },
@@ -1611,19 +2849,44 @@ const styles = StyleSheet.create({
   conflictSavingLabel: { fontSize: 12, color: "#475569" },
   conflictSuggestion: { fontSize: 14, lineHeight: 21, color: "#334155", marginBottom: 20 },
   conflictActions: { flexDirection: "row", gap: 12 },
-  conflictAcceptBtn: { flex: 1, backgroundColor: "#0f5c45", borderRadius: 16, paddingVertical: 14, alignItems: "center" },
+  conflictAcceptBtn: {
+    flex: 1,
+    backgroundColor: "#0f5c45",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
   conflictAcceptText: { fontSize: 15, fontWeight: "800", color: "#ffffff" },
-  conflictDismissBtn: { flex: 1, backgroundColor: "#f1f5f9", borderRadius: 16, paddingVertical: 14, alignItems: "center" },
+  conflictDismissBtn: {
+    flex: 1,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
   conflictDismissText: { fontSize: 15, fontWeight: "800", color: "#64748b" },
 
   // Package list modal
   packageListOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" },
-  packageListModal: { backgroundColor: "#ffffff", borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "70%", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
+  packageListModal: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "70%",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
+  },
   packageListHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   packageListTitle: { fontSize: 20, fontWeight: "800", color: "#0f172a" },
   packageListEmpty: { fontSize: 15, lineHeight: 22, color: "#64748b", paddingVertical: 24, textAlign: "center" },
   packageListItem: { backgroundColor: "#f8fafc", borderRadius: 18, padding: 16, marginBottom: 12 },
-  packageListItemHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  packageListItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   packageListItemLabel: { fontSize: 16, fontWeight: "800", color: "#0f172a" },
   packageListStatusBadge: { backgroundColor: "#edf5f0", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   packageListStatusTransit: { backgroundColor: "#fef3c7" },
@@ -1640,21 +2903,72 @@ const styles = StyleSheet.create({
 
   // Points popup floating marker
   pointsPopupWrap: { alignItems: "center", paddingBottom: 8 },
-  pointsPopupText: { fontSize: 16, fontWeight: "900", textShadowColor: "rgba(255,255,255,0.9)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  pointsPopupText: {
+    fontSize: 16,
+    fontWeight: "900",
+    textShadowColor: "rgba(255,255,255,0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
 
   // User delivery success banner
-  userBanner: { position: "absolute", top: 60, left: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#16a34a", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 6, zIndex: 100 },
+  userBanner: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#16a34a",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    zIndex: 100,
+  },
   userBannerText: { color: "#ffffff", fontSize: 15, fontWeight: "800" },
 
   // Driver detail card
-  driverDetailCard: { position: "absolute", left: 20, right: 20, bottom: 80, backgroundColor: "rgba(255, 255, 255, 0.97)", borderRadius: 24, paddingHorizontal: 18, paddingVertical: 18, shadowColor: "#0b3d2e", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 18, elevation: 4 },
+  driverDetailCard: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    bottom: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.97)",
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    shadowColor: "#0b3d2e",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+  },
   driverDetailHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   driverDetailDot: { width: 14, height: 14, borderRadius: 7 },
   driverDetailName: { flex: 1, fontSize: 18, fontWeight: "800", color: "#0f172a" },
-  driverDetailStateBadge: { backgroundColor: "#edf5f0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignSelf: "flex-start", marginBottom: 12 },
+  driverDetailStateBadge: {
+    backgroundColor: "#edf5f0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
   driverDetailStateText: { fontSize: 13, fontWeight: "700", color: "#0f5c45" },
   driverDetailStatsRow: { flexDirection: "row", gap: 14, marginBottom: 12 },
-  driverDetailStat: { flex: 1, alignItems: "center", backgroundColor: "#f8fafc", borderRadius: 14, paddingVertical: 10 },
+  driverDetailStat: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    paddingVertical: 10,
+  },
   driverDetailStatValue: { fontSize: 20, fontWeight: "800", color: "#0f172a" },
   driverDetailStatLabel: { fontSize: 11, fontWeight: "600", color: "#64748b", marginTop: 2 },
   driverDetailPkgList: { borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 10, gap: 8 },
@@ -1664,7 +2978,14 @@ const styles = StyleSheet.create({
 
   // Optimal order modal rows
   optimalOrderRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
-  optimalOrderBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#0f5c45", alignItems: "center", justifyContent: "center" },
+  optimalOrderBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#0f5c45",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   optimalOrderBadgeText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
   optimalOrderInfo: { flex: 1 },
   optimalOrderLabel: { fontSize: 15, fontWeight: "800", color: "#0f172a" },
@@ -1674,8 +2995,24 @@ const styles = StyleSheet.create({
   dropoffMarkerActive: { backgroundColor: "#15803d", borderColor: "#dcfce7" },
   dropoffMarkerTailActive: { backgroundColor: "#15803d", borderColor: "#dcfce7" },
 
-  tabBar: { flexDirection: "row", gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: "#ffffff", borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  tabButton: { flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#edf5f0" },
+  tabBar: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#edf5f0",
+  },
   tabButtonActive: { backgroundColor: "#0f5c45" },
   tabIcon: { color: "#527166", marginBottom: 0 },
   tabIconActive: { color: "#ffffff" },
