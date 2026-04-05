@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import type { ComponentProps } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline } from "react-native-maps";
 
@@ -319,15 +319,6 @@ export default function App() {
         </View>
       )}
 
-      <View style={styles.content}>
-        {activeTab === "dashboard" ? (
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.heroCard}>
-              <Text style={styles.heroEyebrow}>Dashboard</Text>
-              <Text style={styles.heroTitle}>Your eco impact this week</Text>
-              <Text style={styles.heroText}>Keep riding sustainably to unlock more rewards and grow your streak.</Text>
-            </View>
-
         <View style={styles.content}>
           {activeTab === "dashboard" ? (
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -612,9 +603,9 @@ export default function App() {
                 <Text style={styles.cardTitle}>Trip History</Text>
               </Pressable>
 
-              <Pressable style={styles.logoutButton}>
+              <Pressable style={styles.profileLogoutButton}>
                 <MaterialCommunityIcons name="logout" size={20} color="#ffffff" />
-                <Text style={styles.logoutButtonText}>Log out</Text>
+                <Text style={styles.profileLogoutButtonText}>Log out</Text>
               </Pressable>
             </ScrollView>
           ) : (
@@ -1619,7 +1610,7 @@ const styles = StyleSheet.create({
     color: "#475569",
     marginLeft: 12,
   },
-  logoutButton: {
+  profileLogoutButton: {
     backgroundColor: "#c2410c",
     borderRadius: 18,
     paddingVertical: 16,
@@ -1629,7 +1620,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 4,
   },
-  logoutButtonText: {
+  profileLogoutButtonText: {
     fontSize: 16,
     fontWeight: "800",
     color: "#ffffff",
