@@ -540,7 +540,29 @@ export default function App() {
                     p.id === targetPkg.id ? { ...p, status: "in_transit" as const, actualPickupTime: pickedUpAt } : p,
                   );
 
-                  if (nextPackages.length >= MAX_PACKAGES_PER_DRIVER) {
+                  const morePending = pkgs.filter(
+                    (p) => p.status === "assigned" && p.assignedDriverId === "user-driver",
+                  );
+
+                  if (morePending.length > 0 && nextPackages.length < MAX_PACKAGES_PER_DRIVER) {
+                    const pendingIds = morePending.map((p) => p.id);
+                    const pickupCoords = new Map<string, LatLng>();
+                    for (const mp of morePending) pickupCoords.set(mp.id, mp.pickupCoordinate);
+                    const order = computeOptimalOrder(ud.coordinate, pendingIds, pickupCoords);
+                    const nextPickupId = order[0];
+                    const nextPickupPkg = morePending.find((p) => p.id === nextPickupId);
+                    if (nextPickupId && nextPickupPkg) {
+                      ud.state = "to_pickup";
+                      ud.targetPackageId = nextPickupId;
+                      fetchRoute(ud.coordinate, nextPickupPkg.pickupCoordinate).then((route) => {
+                        setSimDrivers((cur) =>
+                          applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+                        );
+                      });
+                    } else {
+                      ud.state = "idle";
+                    }
+                  } else if (nextPackages.length >= MAX_PACKAGES_PER_DRIVER) {
                     ud.state = "idle";
                     const dropoffCoords = new Map<string, LatLng>();
                     for (const pid of nextPackages) {
@@ -676,29 +698,48 @@ export default function App() {
   const handlePickupPackage = () => {
     if (!selectedPackage || !userDriver || !canPickupMore) return;
     if (selectedPackage.status !== "waiting") return;
-    if (userDriver.state === "to_dropoff") return;
 
     const pkgId = selectedPackage.id;
 
     setSimPackages((prev) => prev.map((p) =>
       p.id === pkgId ? { ...p, status: "assigned" as const, assignedDriverId: "user-driver" } : p,
     ));
-    setSimDrivers((prev) => prev.map((d) => {
-      if (d.id !== "user-driver") return d;
-      return {
-        ...d,
-        state: "to_pickup" as const,
-        targetPackageId: pkgId,
-        routeWaypoints: [],
-        routeProgress: 0,
-        routeDistanceKm: 0,
-        routeDurationSec: 0,
-        etaRemainingSec: 0,
-      };
-    }));
-    fetchRoute(userDriver.coordinate, selectedPackage.pickupCoordinate).then((route) => {
-      setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
-    });
+
+    if (userDriver.state === "idle") {
+      const allPending = simPackages
+        .filter((p) => p.status === "assigned" && p.assignedDriverId === "user-driver")
+        .map((p) => p.id);
+      if (!allPending.includes(pkgId)) allPending.push(pkgId);
+
+      const pickupCoords = new Map<string, LatLng>();
+      for (const pid of allPending) {
+        const pkg = pid === pkgId ? selectedPackage : simPackages.find((p) => p.id === pid);
+        if (pkg) pickupCoords.set(pid, pkg.pickupCoordinate);
+      }
+      const order = computeOptimalOrder(userDriver.coordinate, allPending, pickupCoords);
+      const firstId = order[0];
+      const firstPkg = firstId === pkgId ? selectedPackage : simPackages.find((p) => p.id === firstId);
+
+      if (firstId && firstPkg) {
+        setSimDrivers((prev) => prev.map((d) => {
+          if (d.id !== "user-driver") return d;
+          return {
+            ...d,
+            state: "to_pickup" as const,
+            targetPackageId: firstId,
+            routeWaypoints: [],
+            routeProgress: 0,
+            routeDistanceKm: 0,
+            routeDurationSec: 0,
+            etaRemainingSec: 0,
+          };
+        }));
+        fetchRoute(userDriver.coordinate, firstPkg.pickupCoordinate).then((route) => {
+          setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+        });
+      }
+    }
+    // If already to_pickup or to_dropoff, just claim — the queue grows naturally
 
     setSelectedPackageId(null);
   };
@@ -810,10 +851,39 @@ export default function App() {
     setShowUserBanner(true);
     setTimeout(() => setShowUserBanner(false), 2500);
 
+    const pendingPickups = simPackages.filter(
+      (p) => p.status === "assigned" && p.assignedDriverId === "user-driver",
+    );
+
     setSimDrivers((prev) =>
       prev.map((d) => {
         if (d.id !== "user-driver") return d;
         const remaining = d.packages.filter((pid) => pid !== pkgId);
+
+        if (pendingPickups.length > 0) {
+          const pickupCoords = new Map<string, LatLng>();
+          for (const pp of pendingPickups) pickupCoords.set(pp.id, pp.pickupCoordinate);
+          const order = computeOptimalOrder(d.coordinate, pendingPickups.map((p) => p.id), pickupCoords);
+          const nextPickupId = order[0];
+          const nextPickupPkg = pendingPickups.find((p) => p.id === nextPickupId);
+          if (nextPickupId && nextPickupPkg) {
+            fetchRoute(d.coordinate, nextPickupPkg.pickupCoordinate).then((route) => {
+              setSimDrivers((cur) =>
+                applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec),
+              );
+            });
+          }
+          return {
+            ...d,
+            packages: remaining,
+            state: "to_pickup" as const,
+            targetPackageId: nextPickupId ?? null,
+            targetDropoffId: null,
+            routeWaypoints: [],
+            routeProgress: 0,
+          };
+        }
+
         if (remaining.length > 0) {
           const nextId = remaining[0];
           const nextPkg = simPackages.find((p) => p.id === nextId);
@@ -833,11 +903,13 @@ export default function App() {
             routeProgress: 0,
           };
         }
+
         return {
           ...d,
           packages: [],
           state: "idle" as const,
           targetDropoffId: null,
+          targetPackageId: null,
           routeWaypoints: [],
           routeProgress: 0,
           etaRemainingSec: 0,
@@ -2033,14 +2105,12 @@ export default function App() {
                   <Text style={styles.packageDetailText}>Pickup: {selectedPackage.pickupAddress}</Text>
                   <Text style={styles.packageDetailText}>Dropoff: {selectedPackage.dropoffAddress}</Text>
                   <Text style={styles.packageDetailPoints}>Reward: +{selectedPackage.rewardPoints} pts</Text>
-                  {selectedPackage.status === "waiting" && canPickupMore && userDriver?.state !== "to_dropoff" ? (
+                  {selectedPackage.status === "waiting" && canPickupMore ? (
                     <Pressable style={styles.packagePickupButton} onPress={handlePickupPackage}>
-                      <Text style={styles.packagePickupButtonText}>Pick Up</Text>
+                      <Text style={styles.packagePickupButtonText}>
+                        {userDriver?.state === "to_dropoff" || userDriver?.state === "to_pickup" ? "Add to Queue" : "Pick Up"}
+                      </Text>
                     </Pressable>
-                  ) : selectedPackage.status === "waiting" && userDriver?.state === "to_dropoff" ? (
-                    <View style={styles.packageLimitBadge}>
-                      <Text style={styles.packageLimitBadgeText}>Finish deliveries first</Text>
-                    </View>
                   ) : selectedPackage.status === "waiting" && !canPickupMore ? (
                     <View style={styles.packageLimitBadge}>
                       <Text style={styles.packageLimitBadgeText}>Pickup limit reached ({MAX_PACKAGES_PER_DRIVER})</Text>
