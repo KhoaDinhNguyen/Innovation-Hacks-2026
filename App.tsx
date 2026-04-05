@@ -63,6 +63,7 @@ const staticPointHistory = [
 ];
 
 const mapRegion = { latitude: 33.4484, longitude: -112.074, latitudeDelta: 0.014, longitudeDelta: 0.014 } as const;
+const USER_ROUTE_ARRIVAL_THRESHOLD_KM = 0.05;
 
 const tripHistory = [
   { id: "1", date: "Today", time: "2:30 PM", from: "Home", to: "Central Park", points: "+40", co2: "2.5 kg CO2", distance: "3.2 km", duration: "15 min", vehicleIcon: "walk" },
@@ -131,7 +132,9 @@ export default function App() {
 
   const userDriver = simDrivers.find((d) => d.role === "user") ?? null;
   const aiDrivers = simDrivers.filter((d) => d.role === "ai");
-  const userPackageIds = userDriver?.packages ?? [];
+  const userPackageIds = simPackages
+    .filter((p) => p.assignedDriverId === "user-driver" && p.status !== "delivered")
+    .map((p) => p.id);
   const userPackageCount = userPackageIds.length;
   const canPickupMore = userPackageCount < MAX_PACKAGES_PER_DRIVER;
   const selectedPackage = simPackages.find((p) => p.id === selectedPackageId) ?? null;
@@ -203,6 +206,43 @@ export default function App() {
               if (targetPkg) {
                 const dest = ud.state === "to_pickup" ? targetPkg.pickupCoordinate : targetPkg.dropoffCoordinate;
                 ud.heading = bearing(ud.coordinate, dest);
+
+                const hasArrived = moveResult.arrived || haversineDistance(ud.coordinate, dest) <= USER_ROUTE_ARRIVAL_THRESHOLD_KM;
+                if (hasArrived && ud.state === "to_pickup") {
+                  const pickedUpAt = Date.now();
+                  const nextPackages = [...ud.packages, targetPkg.id];
+                  const nextTargetDropoffId = ud.targetDropoffId ?? targetPkg.id;
+
+                  ud.coordinate = { ...targetPkg.pickupCoordinate };
+                  ud.packages = nextPackages;
+                  ud.state = "to_dropoff";
+                  ud.targetPackageId = null;
+                  ud.targetDropoffId = nextTargetDropoffId;
+                  ud.routeWaypoints = [];
+                  ud.routeProgress = 0;
+                  ud.routeDistanceKm = 0;
+                  ud.routeDurationSec = 0;
+                  ud.etaRemainingSec = 0;
+
+                  pkgs = pkgs.map((p) =>
+                    p.id === targetPkg.id ? { ...p, status: "in_transit" as const, actualPickupTime: pickedUpAt } : p,
+                  );
+
+                  if (nextPackages.length >= 2) {
+                    const dropoffCoords = new Map<string, LatLng>();
+                    for (const pid of nextPackages) {
+                      const pkg = pkgs.find((p) => p.id === pid);
+                      if (pkg) dropoffCoords.set(pid, pkg.dropoffCoordinate);
+                    }
+                    const order = computeOptimalOrder(ud.coordinate, nextPackages, dropoffCoords);
+                    setOptimalOrder(order);
+                    setShowOptimalOrderModal(true);
+                  } else {
+                    fetchRoute(ud.coordinate, targetPkg.dropoffCoordinate).then((route) => {
+                      setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+                    });
+                  }
+                }
               }
             }
             updatedDrivers.push(ud);
@@ -306,33 +346,29 @@ export default function App() {
 
   const handlePickupPackage = () => {
     if (!selectedPackage || !userDriver || !canPickupMore) return;
-    if (selectedPackage.status !== "waiting" && selectedPackage.status !== "assigned") return;
+    if (selectedPackage.status !== "waiting") return;
 
     const pkgId = selectedPackage.id;
-    const newPkgs = [...userDriver.packages, pkgId];
 
     setSimPackages((prev) => prev.map((p) =>
-      p.id === pkgId ? { ...p, status: "in_transit" as const, assignedDriverId: "user-driver", actualPickupTime: Date.now() } : p,
+      p.id === pkgId ? { ...p, status: "assigned" as const, assignedDriverId: "user-driver" } : p,
     ));
     setSimDrivers((prev) => prev.map((d) => {
       if (d.id !== "user-driver") return d;
-      return { ...d, packages: newPkgs, state: "to_dropoff" as const, targetDropoffId: d.targetDropoffId ?? pkgId };
+      return {
+        ...d,
+        state: "to_pickup" as const,
+        targetPackageId: pkgId,
+        routeWaypoints: [],
+        routeProgress: 0,
+        routeDistanceKm: 0,
+        routeDurationSec: 0,
+        etaRemainingSec: 0,
+      };
     }));
-
-    if (newPkgs.length >= 2) {
-      const dropoffCoords = new Map<string, LatLng>();
-      for (const pid of newPkgs) {
-        const pkg = pid === pkgId ? selectedPackage : simPackages.find((p) => p.id === pid);
-        if (pkg) dropoffCoords.set(pid, pkg.dropoffCoordinate);
-      }
-      const order = computeOptimalOrder(userDriver.coordinate, newPkgs, dropoffCoords);
-      setOptimalOrder(order);
-      setShowOptimalOrderModal(true);
-    } else {
-      fetchRoute(userDriver.coordinate, selectedPackage.dropoffCoordinate).then((route) => {
-        setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
-      });
-    }
+    fetchRoute(userDriver.coordinate, selectedPackage.pickupCoordinate).then((route) => {
+      setSimDrivers((cur) => applyRouteToDriver(cur, "user-driver", route.waypoints, route.distanceKm, route.durationSec));
+    });
 
     setSelectedPackageId(null);
   };
@@ -1095,6 +1131,8 @@ export default function App() {
                     </Pressable>
                   ) : selectedPackage.status === "in_transit" ? (
                     <View style={styles.packageDeliveryBadge}><Text style={styles.packageDeliveryBadgeText}>In transit — {simDrivers.find((d) => d.id === selectedPackage.assignedDriverId)?.name ?? "another driver"}</Text></View>
+                  ) : selectedPackage.status === "assigned" && selectedPackage.assignedDriverId === "user-driver" ? (
+                    <View style={styles.packageTakenBadge}><Text style={styles.packageTakenBadgeText}>Heading to pickup</Text></View>
                   ) : selectedPackage.status === "assigned" ? (
                     <View style={styles.packageTakenBadge}><Text style={styles.packageTakenBadgeText}>Assigned to {simDrivers.find((d) => d.id === selectedPackage.assignedDriverId)?.name ?? "a driver"}</Text></View>
                   ) : null}
